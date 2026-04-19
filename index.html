@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYDROTECA — Gestion de Chantiers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #1e2a3d;
+            --bg-main: #243044;
+            --bg-card: #2c3a52;
+            --bg-card-hover: #334260;
+            --bg-input: #283650;
+            --border: #3a4e6a;
+            --border-light: #4a6080;
+            --text: #e8f0ff;
+            --text-sec: #90a8cc;
+            --text-muted: #5070a0;
+            --accent: #4d94ff;
+            --accent-hover: #2b7aff;
+            --accent-light: #80b3ff;
+            --accent-glow: rgba(77, 148, 255, .18);
+            --success: #34d399;
+            --danger: #f87171;
+            --info: #38bdf8;
+            --warning: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main)
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted)
+        }
+
+        #sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 250px;
+            background: var(--bg-main);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            transition: transform .3s
+        }
+
+        .sidebar-logo {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .sidebar-logo .icon-box {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #fff;
+            font-weight: 800
+        }
+
+        .sidebar-logo h1 {
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -.5px;
+            color: var(--text)
+        }
+
+        .sidebar-logo span {
+            font-size: 10px;
+            color: var(--text-sec);
+            display: block;
+            letter-spacing: .5px;
+            text-transform: uppercase
+        }
+
+        #project-selector {
+            margin: 16px 16px 8px;
+            position: relative
+        }
+
+        #project-selector select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            outline: none;
+            transition: border .2s
+        }
+
+        #project-selector select:focus {
+            border-color: var(--accent)
+        }
+
+        #project-selector::after {
+            content: '\f107';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-sec);
+            pointer-events: none;
+            font-size: 12px
+        }
+
+        .nav-section {
+            padding: 8px 16px 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 8px
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            margin: 2px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .15s;
+            font-size: 13.5px;
+            font-weight: 500;
+            color: var(--text-sec);
+            position: relative
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text)
+        }
+
+        .nav-item.active {
+            background: rgba(37, 99, 235, .10);
+            color: var(--accent);
+            font-weight: 600
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 14px
+        }
+
+        #main {
+            margin-left: 250px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        #topbar {
+            height: 60px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            background: var(--bg-main);
+            flex-shrink: 0
+        }
+
+        #topbar .page-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        #topbar .page-title i {
+            color: var(--accent);
+            font-size: 14px
+        }
+
+        #topbar .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .topbar-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: var(--text-sec);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .15s
+        }
+
+        .topbar-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        .topbar-btn.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            font-weight: 600
+        }
+
+        .topbar-btn.primary:hover {
+            background: var(--accent-hover)
+        }
+
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
+            background: var(--bg-deep)
+        }
+
+        /* Cartes */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(30,42,66,.06), 0 4px 12px rgba(30,42,66,.04);
+            transition: border .2s, box-shadow .2s
+        }
+
+        .card:hover {
+            border-color: var(--border-light);
+            box-shadow: 0 2px 8px rgba(37,99,235,.08), 0 6px 18px rgba(30,42,66,.06)
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .card-title i {
+            color: var(--accent);
+            font-size: 13px
+        }
+
+        /* KPI */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px
+        }
+
+        .kpi {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            transition: all .2s
+        }
+
+        .kpi:hover {
+            border-color: var(--border-light);
+            transform: translateY(-1px)
+        }
+
+        .kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0
+        }
+
+        .kpi-info h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-sec);
+            font-weight: 600;
+            margin-bottom: 4px
+        }
+
+        .kpi-info .value {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -.5px
+        }
+
+        .kpi-info .change {
+            font-size: 11px;
+            margin-top: 2px;
+            font-weight: 500
+        }
+
+        /* Tableaux */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px
+        }
+
+        .data-table thead th {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--text-sec);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            white-space: normal;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card)
+        }
+
+        .data-table tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            vertical-align: middle
+        }
+
+        .data-table tbody tr {
+            transition: background .1s
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--bg-card-hover)
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, .12);
+            color: #34d399
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, .12);
+            color: #f87171
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, .12);
+            color: #fbbf24
+        }
+
+        .badge-info {
+            background: rgba(6, 182, 212, .12);
+            color: #22d3ee
+        }
+
+        /* Inputs */
+        .form-group {
+            margin-bottom: 14px
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sec);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border .2s
+        }
+
+        .form-input:focus {
+            border-color: var(--accent)
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted)
+        }
+
+        select.form-input {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a80a0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        /* Modal */
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px)
+        }
+
+        #modal-overlay.show {
+            display: flex
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            width: 560px;
+            max-width: 92vw;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalIn .2s ease
+        }
+
+        .modal.wide {
+            width: 800px
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(.95) translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0)
+            }
+        }
+
+        .modal-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .modal-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .modal-header h2 i {
+            color: var(--accent);
+            font-size: 14px
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-sec);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            transition: color .15s
+        }
+
+        .modal-close:hover {
+            color: var(--danger)
+        }
+
+        .modal-body {
+            padding: 22px;
+            overflow-y: auto;
+            flex: 1
+        }
+
+        .modal-footer {
+            padding: 14px 22px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px
+        }
+
+        /* Toast */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .toast {
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toastIn .3s ease;
+            min-width: 280px;
+            border: 1px solid
+        }
+
+        .toast-success {
+            background: rgba(16, 185, 129, .1);
+            border-color: rgba(16, 185, 129, .3);
+            color: #34d399
+        }
+
+        .toast-danger {
+            background: rgba(239, 68, 68, .1);
+            border-color: rgba(239, 68, 68, .3);
+            color: #f87171
+        }
+
+        .toast-info {
+            background: rgba(6, 182, 212, .1);
+            border-color: rgba(6, 182, 212, .3);
+            color: #22d3ee
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(40px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        /* Pointage grille */
+        .att-cell {
+            width: 32px;
+            height: 30px;
+            text-align: center;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all .1s;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .att-cell.present {
+            background: rgba(16, 185, 129, .15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, .3)
+        }
+
+        .att-cell.half {
+            background: rgba(245, 158, 11, .15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, .3)
+        }
+
+        .att-cell.absent {
+            background: transparent;
+            color: var(--text-muted)
+        }
+
+        .att-cell:hover {
+            border-color: var(--accent)
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 220px
+        }
+
+        /* Tabs */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-main);
+            border-radius: 10px;
+            padding: 4px;
+            border: 1px solid var(--border)
+        }
+
+        .tab-btn {
+            padding: 8px 18px;
+            border-radius: 7px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-sec);
+            cursor: pointer;
+            transition: all .15s;
+            border: none;
+            background: none;
+            font-family: inherit
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #797b7c
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--text);
+            background: var(--bg-card)
+        }
+
+        /* Boutons action inline */
+        .action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-sec);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all .15s
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        .action-btn.danger:hover {
+            border-color: var(--danger);
+            color: var(--danger)
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-sec)
+        }
+
+        .empty-state i {
+            font-size: 40px;
+            color: var(--text-muted);
+            margin-bottom: 14px
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            margin-bottom: 16px
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn .3s ease
+        }
+
+        /* Stock color coding */
+        .stock-low {
+            color: var(--danger);
+            font-weight: 700
+        }
+
+        .stock-ok {
+            color: var(--success);
+            font-weight: 600
+        }
+
+        .stock-mid {
+            color: var(--warning);
+            font-weight: 600
+        }
+
+        @media(prefers-reduced-motion:reduce) {
+            * {
+                animation-duration: 0s !important;
+                transition-duration: 0s !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barre latérale -->
+    <aside id="sidebar">
+        <div class="sidebar-logo">
+            <div class="icon-box" style="background:transparent;padding:0;overflow:hidden"><img src="logo.png" style="width:100%;height:100%;object-fit:contain"></div>
+            <div>
+                <h1>HYDROTECA</h1><span>Gestion Chantiers</span>
+            </div>
+        </div>
+        <div id="project-selector">
+            <select id="sel-project" aria-label="Sélectionner un projet"></select>
+        </div>
+        <div class="nav-section">Principal</div>
+        <div class="nav-item active" data-page="dashboard"><i class="fas fa-chart-pie"></i>Tableau de Bord</div>
+        <div class="nav-item" data-page="projets"><i class="fas fa-hard-hat"></i>Projets</div>
+        <div class="nav-section">Suivi Chantier</div>
+        <div class="nav-item" data-page="stock"><i class="fas fa-boxes-stacked"></i>Gestion de Stock</div>
+        <div class="nav-item" data-page="materiels"><i class="fas fa-tractor"></i>Pointage Matériels</div>
+        <div class="nav-item" data-page="personnel"><i class="fas fa-users"></i>Pointage Personnel</div>
+        <div class="nav-section">Finances</div>
+        <div class="nav-item" data-page="depenses"><i class="fas fa-coins"></i>Dépenses Journalières</div>
+        <div style="flex:1"></div>
+        <div style="padding:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><i class="fas fa-database"
+                    style="color:var(--success)"></i> Données locales</div>
+            <div id="data-info"></div>
+        </div>
+    </aside>
+
+    <!-- Zone principale -->
+    <div id="main">
+        <header id="topbar">
+            <div class="page-title" id="page-title"><i class="fas fa-chart-pie"></i>Tableau de Bord</div>
+            <div class="actions" id="topbar-actions"></div>
+        </header>
+        <div id="content"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal" id="modal-box">
+            <div class="modal-header">
+                <h2 id="modal-title"><i class="fas fa-plus"></i> Titre</h2>
+                <button class="modal-close" onclick="closeModal()" aria-label="Fermer"><i
+                        class="fas fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toast-container" aria-live="polite"></div>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const PRIX_GASOIL = 11; // DH par litre
+        const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        const CATEGORIES_DEPENSE = ['Matériaux', 'Main d\'œuvre', 'Matériels', 'Carburant', 'Transport', 'Divers'];
+        const UNITES = { Ciment: 'Sacs', Sable: 'M3', Gasoil: 'Litres', GNF2: 'M3', GNB: 'M3', MS: 'M3', 'G1+G2': 'M3', 'Acier': 'Kg', Gravier: 'M3' };
+
+        // ============================================================
+        // GESTION D'ÉTAT
+        // ============================================================
+        let state = { projects: [], currentProjectId: null, currentPage: 'dashboard' };
+        const charts = {};
+
+        function save() { localStorage.setItem('cwms_data', JSON.stringify(state)); }
+        function load() {
+            const d = localStorage.getItem('cwms_data');
+            if (d) { state = JSON.parse(d); return true; }
+            return false;
+        }
+
+        // ============================================================
+        // UTILITAIRES
+        // ============================================================
+        function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+        function fmt(n) { return n == null ? '-' : Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+        function fmtD(n) { return n == null ? '-' : Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function parseNum(v) { const n = parseFloat(String(v).replace(/,/g, '.')); return isNaN(n) ? 0 : n; }
+        function parseDate(s) { if (!s) return null; const p = String(s).split('/'); if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]); return new Date(s); }
+        function dateStr(d) { if (!d) return ''; const dd = d instanceof Date ? d : new Date(d); return dd.toLocaleDateString('fr-FR'); }
+        function dateISO(d) { if (!d) return ''; const dd = d instanceof Date ? d : new Date(d); return dd.toISOString().split('T')[0]; }
+        function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+        function getProject() { return state.projects.find(p => p.id === state.currentProjectId); }
+
+        // ============================================================
+        // DONNÉES INITIALES (SEED)
+        // ============================================================
+
+        // ============================================================
+        // NAVIGATION
+        // ============================================================
+        function navigate(page) {
+            state.currentPage = page;
+            save();
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+            renderPage();
+        }
+
+        function renderPage() {
+            const c = document.getElementById('content');
+            const titles = { dashboard: 'Tableau de Bord', projets: 'Gestion des Projets', stock: 'Gestion de Stock', materiels: 'Pointage Matériels', personnel: 'Pointage Personnel', depenses: 'Dépenses Journalières' };
+            const icons = { dashboard: 'fa-chart-pie', projets: 'fa-hard-hat', stock: 'fa-boxes-stacked', materiels: 'fa-tractor', personnel: 'fa-users', depenses: 'fa-coins' };
+            document.getElementById('page-title').innerHTML = `<i class="fas ${icons[state.currentPage] || 'fa-circle'}"></i>${titles[state.currentPage] || ''}`;
+            document.getElementById('topbar-actions').innerHTML = getTopbarActions();
+            Object.values(charts).forEach(c => { try { c.destroy() } catch (e) { } });
+            for (let k in charts) delete charts[k];
+
+            const fns = { dashboard: renderDashboard, projets: renderProjets, stock: renderStock, materiels: renderMateriels, personnel: renderPersonnel, depenses: renderDepenses };
+            if (fns[state.currentPage]) fns[state.currentPage]();
+            updateDataInfo();
+        }
+
+        function getTopbarActions() {
+            const p = getProject();
+            if (!p) return '';
+            switch (state.currentPage) {
+                case 'projets': return `<button class="topbar-btn primary" onclick="modalAddProject()"><i class="fas fa-plus"></i> Nouveau Projet</button>`;
+                case 'stock': return `<button class="topbar-btn primary" onclick="modalAddStockItem()"><i class="fas fa-plus"></i> Nouvel Article</button><button class="topbar-btn" onclick="modalMouvement('entree')"><i class="fas fa-arrow-down"></i> Entrée</button><button class="topbar-btn" onclick="modalMouvement('sortie')"><i class="fas fa-arrow-up"></i> Sortie</button><button class="topbar-btn" style="color:var(--success);border-color:var(--success)" onclick="exportStock()"><i class="fas fa-file-excel"></i> Excel</button>`;
+                case 'materiels': return `<button class="topbar-btn primary" onclick="modalAddMateriel()"><i class="fas fa-plus"></i> Ajouter Matériel</button><button class="topbar-btn" onclick="modalAddPointage()"><i class="fas fa-clipboard-check"></i> Pointage Journalier</button><button class="topbar-btn" style="color:var(--success);border-color:var(--success)" onclick="exportMateriels()"><i class="fas fa-file-excel"></i> Excel</button>`;
+                case 'personnel': return `<button class="topbar-btn primary" onclick="modalAddPersonnel()"><i class="fas fa-plus"></i> Ajouter Personnel</button><button class="topbar-btn" onclick="modalAvance()"><i class="fas fa-hand-holding-dollar"></i> Avance</button><button class="topbar-btn" style="color:var(--success);border-color:var(--success)" onclick="exportPersonnel()"><i class="fas fa-file-excel"></i> Excel</button>`;
+                case 'depenses': return `<button class="topbar-btn primary" onclick="modalAddDepense()"><i class="fas fa-plus"></i> Ajouter Dépense</button><button class="topbar-btn" style="color:var(--success);border-color:var(--success)" onclick="exportDepenses()"><i class="fas fa-file-excel"></i> Excel</button>`;
+                default: return '';
+            }
+        }
+
+        function updateDataInfo() {
+            const p = getProject();
+            const el = document.getElementById('data-info');
+            if (!p) { el.textContent = 'Aucun projet'; return; }
+            const pm = p.pointageMateriel.length;
+            const pp = p.pointagePersonnel.length;
+            const dep = p.depenses.length;
+            el.innerHTML = `${pm} pointages mat. &middot; ${pp} présences &middot; ${dep} dépenses`;
+        }
+
+        // ============================================================
+        // MODAL & TOAST
+        // ============================================================
+        function openModal(title, icon, bodyHtml, footerHtml, wide) {
+            document.getElementById('modal-title').innerHTML = `<i class="fas ${icon || 'fa-plus'}"></i> ${title}`;
+            document.getElementById('modal-body').innerHTML = bodyHtml;
+            document.getElementById('modal-footer').innerHTML = footerHtml || '';
+            document.getElementById('modal-box').classList.toggle('wide', !!wide);
+            document.getElementById('modal-overlay').classList.add('show');
+        }
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+        function toast(msg, type = 'success') {
+            const c = document.getElementById('toast-container');
+            const ic = { success: 'fa-check-circle', danger: 'fa-exclamation-circle', info: 'fa-info-circle' };
+            const d = document.createElement('div');
+            d.className = `toast toast-${type}`;
+            d.innerHTML = `<i class="fas ${ic[type] || ic.info}"></i>${msg}`;
+            c.appendChild(d);
+            setTimeout(() => { d.style.opacity = '0'; d.style.transform = 'translateX(40px)'; d.style.transition = 'all .3s'; setTimeout(() => d.remove(), 300) }, 3000);
+        }
+
+        // ============================================================
+        // MODULE: TABLEAU DE BORD
+        // ============================================================
+        function renderDashboard() {
+            const p = getProject();
+            const c = document.getElementById('content');
+            if (!p) { c.innerHTML = `<div class="empty-state"><i class="fas fa-hard-hat"></i><p>Aucun projet sélectionné</p><button class="topbar-btn primary" onclick="navigate('projets')"><i class="fas fa-plus"></i> Créer un projet</button></div>`; return; }
+
+            // KPIs
+            const totalDepenses = p.depenses.reduce((s, d) => s + d.montant, 0);
+            const totalMateriaux = p.depenses.filter(d => d.categorie === 'Matériaux').reduce((s, d) => s + d.montant, 0);
+            const totalMateriels = p.pointageMateriel.reduce((s, m) => s + parseNum(m.prixJ), 0);
+            const totalPersonnel = calcTotalSalaireMois(p, new Date().getFullYear(), new Date().getMonth());
+            const alertesStock = p.stock.filter(s => s.stockActuel <= s.seuilAlerte).length;
+
+            c.innerHTML = `<div class="fade-in">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(245,158,11,.12);color:#fbbf24"><i class="fas fa-coins"></i></div><div class="kpi-info"><h3>Dépenses Totales</h3><div class="value">${fmt(totalDepenses)}</div><div class="change" style="color:var(--text-sec)">DH</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(6,182,212,.12);color:#22d3ee"><i class="fas fa-boxes-stacked"></i></div><div class="kpi-info"><h3>Coût Matériaux</h3><div class="value">${fmt(totalMateriaux)}</div><div class="change" style="color:var(--text-sec)">DH</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(16,185,129,.12);color:#34d399"><i class="fas fa-tractor"></i></div><div class="kpi-info"><h3>Coût Matériels</h3><div class="value">${fmt(totalMateriels)}</div><div class="change" style="color:var(--text-sec)">DH cumulés</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(239,68,68,.12);color:#f87171"><i class="fas fa-users"></i></div><div class="kpi-info"><h3>Coût Personnel</h3><div class="value">${fmt(totalPersonnel)}</div><div class="change" style="color:var(--text-sec)">DH ce mois</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(168,85,247,.12);color:#c084fc"><i class="fas fa-boxes-stacked"></i></div><div class="kpi-info"><h3>Alertes Stock</h3><div class="value">${alertesStock}</div><div class="change" style="color:${alertesStock > 0 ? 'var(--danger)' : 'var(--success)'}">${alertesStock > 0 ? 'Articles sous seuil' : 'Stock OK'}</div></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-chart-line"></i>Dépenses par Catégorie</div></div><div class="chart-container"><canvas id="chart-dep-cat"></canvas></div></div>
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-chart-pie"></i>Répartition Dépenses</div></div><div class="chart-container"><canvas id="chart-dep-pie"></canvas></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-clock"></i>Heures Machines</div></div><div class="chart-container"><canvas id="chart-eq-hours"></canvas></div></div>
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-gas-pump"></i>Consommation Gasoil</div></div><div class="chart-container"><canvas id="chart-eq-fuel"></canvas></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-warehouse"></i>Niveaux de Stock</div></div><div class="chart-container"><canvas id="chart-stock"></canvas></div></div>
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-user-check"></i>Présence Personnel (ce mois)</div></div><div class="chart-container"><canvas id="chart-pers"></canvas></div></div>
+    </div>
+  </div>`;
+
+            // Graphique dépenses par catégorie
+            const depByCat = {};
+            CATEGORIES_DEPENSE.forEach(c => depByCat[c] = 0);
+            p.depenses.forEach(d => { depByCat[d.categorie] = (depByCat[d.categorie] || 0) + d.montant });
+            const catColors = ['#f59e0b', '#06b6d4', '#10b981', '#ef4444', '#8b5cf6', '#6b7280'];
+            charts['dep-cat'] = new Chart(document.getElementById('chart-dep-cat'), {
+                type: 'bar', data: { labels: CATEGORIES_DEPENSE, datasets: [{ label: 'DH', data: CATEGORIES_DEPENSE.map(c => depByCat[c]), backgroundColor: catColors, borderRadius: 6, maxBarThickness: 50 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: '#7a80a0', font: { size: 10 }, callback: v => fmt(v) }, grid: { color: '#262c40' } } } }
+            });
+
+            // Pie dépenses
+            const catData = CATEGORIES_DEPENSE.map(c => depByCat[c]).filter(v => v > 0);
+            const catLabels = CATEGORIES_DEPENSE.filter(c => depByCat[c] > 0);
+            charts['dep-pie'] = new Chart(document.getElementById('chart-dep-pie'), {
+                type: 'doughnut', data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: catColors.slice(0, catLabels.length), borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#7a80a0', font: { size: 10 }, padding: 8, usePointStyle: true, pointStyleWidth: 8 } } } }
+            });
+
+            // Heures machines
+            const eqHours = {};
+            p.materiels.forEach(e => eqHours[e.type] = 0);
+            p.pointageMateriel.forEach(m => { const eq = p.materiels.find(e => e.id === m.equipementId); if (eq) eqHours[eq.type] += parseNum(m.nht) });
+            const eqLabels = Object.keys(eqHours);
+            charts['eq-hours'] = new Chart(document.getElementById('chart-eq-hours'), {
+                type: 'bar', data: { labels: eqLabels.map(l => l.length > 18 ? l.slice(0, 18) + '…' : l), datasets: [{ label: 'NHT', data: eqLabels.map(l => eqHours[l]), backgroundColor: '#06b6d4', borderRadius: 6, maxBarThickness: 40 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a80a0', font: { size: 9 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { color: '#262c40' } } } }
+            });
+
+            // Consommation gasoil
+            const eqFuel = {};
+            p.materiels.forEach(e => eqFuel[e.type] = 0);
+            p.pointageMateriel.forEach(m => { const eq = p.materiels.find(e => e.id === m.equipementId); if (eq) eqFuel[eq.type] += parseNum(m.gasoil) });
+            charts['eq-fuel'] = new Chart(document.getElementById('chart-eq-fuel'), {
+                type: 'bar', data: { labels: eqLabels.map(l => l.length > 18 ? l.slice(0, 18) + '…' : l), datasets: [{ label: 'Litres', data: eqLabels.map(l => eqFuel[l]), backgroundColor: '#f59e0b', borderRadius: 6, maxBarThickness: 40 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a80a0', font: { size: 9 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { color: '#262c40' } } } }
+            });
+
+            // Niveaux stock
+            const stockLabels = p.stock.map(s => s.article);
+            const stockVals = p.stock.map(s => s.stockActuel);
+            const stockColors = stockVals.map((v, i) => v <= p.stock[i].seuilAlerte ? '#ef4444' : v <= p.stock[i].seuilAlerte * 1.5 ? '#f59e0b' : '#10b981');
+            charts['stock'] = new Chart(document.getElementById('chart-stock'), {
+                type: 'bar', data: { labels: stockLabels, datasets: [{ label: 'Stock', data: stockVals, backgroundColor: stockColors, borderRadius: 6, maxBarThickness: 40 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { color: '#262c40' } }, y: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { display: false } } } }
+            });
+
+            // Présence personnel
+            const now = new Date();
+            const persLabels = p.personnel.map(pe => pe.nom.split(' ')[0]);
+            const persVals = p.personnel.map(pe => {
+                return p.pointagePersonnel.filter(pp => pp.personnelId === pe.id && parseDate(pp.date) && parseDate(pp.date).getMonth() === now.getMonth() && parseDate(pp.date).getFullYear() === now.getFullYear()).reduce((s, pp) => s + pp.presence, 0);
+            });
+            charts['pers'] = new Chart(document.getElementById('chart-pers'), {
+                type: 'bar', data: { labels: persLabels, datasets: [{ label: 'Jours', data: persVals, backgroundColor: '#8b5cf6', borderRadius: 6, maxBarThickness: 35 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: '#7a80a0', font: { size: 10 }, stepSize: 1 }, grid: { color: '#262c40' } } } }
+            });
+        }
+
+        function calcTotalSalaireMois(proj, year, month) {
+            let total = 0;
+            proj.personnel.forEach(pe => {
+                const jours = proj.pointagePersonnel.filter(pp => pp.personnelId === pe.id && parseDate(pp.date) && parseDate(pp.date).getMonth() === month && parseDate(pp.date).getFullYear() === year).reduce((s, pp) => s + pp.presence, 0);
+                total += jours * pe.prixJour;
+            });
+            return Math.round(total);
+        }
+
+        // ============================================================
+        // MODULE: PROJETS
+        // ============================================================
+        function renderProjets() {
+            const c = document.getElementById('content');
+            if (state.projects.length === 0) {
+                c.innerHTML = `<div class="empty-state fade-in"><i class="fas fa-hard-hat"></i><p>Aucun projet créé</p><button class="topbar-btn primary" onclick="modalAddProject()"><i class="fas fa-plus"></i> Créer un projet</button></div>`; return;
+            }
+            const statColors = { En_cours: 'badge-info', Terminé: 'badge-success', En_pause: 'badge-warning' };
+            const statLabels = { En_cours: 'En cours', Terminé: 'Terminé', En_pause: 'En pause' };
+            c.innerHTML = `<div class="fade-in"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px">${state.projects.map(p => {
+                const dep = p.depenses.reduce((s, d) => s + d.montant, 0);
+                const mat = p.pointageMateriel.reduce((s, m) => s + parseNum(m.prixJ), 0);
+                return `<div class="card" style="cursor:pointer;${p.id === state.currentProjectId ? 'border-color:var(--accent)' : ''}" onclick="selectProject('${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+        <div><div style="font-size:16px;font-weight:700">${p.nom}</div><div style="font-size:12px;color:var(--text-sec);margin-top:2px"><i class="fas fa-map-marker-alt" style="margin-right:4px"></i>${p.lieu}</div></div>
+        <span class="badge ${statColors[p.statut] || 'badge-info'}">${statLabels[p.statut] || p.statut}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;font-size:12px">
+        <div style="color:var(--text-sec)"><i class="fas fa-user" style="width:16px;color:var(--accent)"></i> ${p.conducteur}</div>
+        <div style="color:var(--text-sec)"><i class="fas fa-calculator" style="width:16px;color:var(--accent)"></i> ${p.comptable}</div>
+        <div style="color:var(--text-sec)"><i class="fas fa-calendar" style="width:16px;color:var(--accent)"></i> ${dateStr(parseDate(p.dateDebut))}</div>
+        <div style="color:var(--text-sec)"><i class="fas fa-flag-checkered" style="width:16px;color:var(--accent)"></i> ${dateStr(parseDate(p.dateFin))}</div>
+      </div>
+      <div style="display:flex;gap:16px;padding-top:12px;border-top:1px solid var(--border);font-size:12px">
+        <div><span style="color:var(--text-sec)">Dépenses:</span> <strong>${fmt(dep)} DH</strong></div>
+        <div><span style="color:var(--text-sec)">Materiels:</span> <strong>${fmt(mat)} DH</strong></div>
+        <div><span style="color:var(--text-sec)">Stock:</span> <strong>${p.stock.length} articles</strong></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:12px;justify-content:flex-end">
+        <button class="action-btn" onclick="event.stopPropagation();modalEditProject('${p.id}')" title="Modifier"><i class="fas fa-pen"></i></button>
+        <button class="action-btn danger" onclick="event.stopPropagation();deleteProject('${p.id}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>`}).join('')}</div></div>`;
+        }
+
+        function selectProject(id) { state.currentProjectId = id; save(); updateProjectSelector(); navigate('dashboard'); }
+        function modalAddProject() {
+            openModal('Nouveau Projet', 'fa-hard-hat', `
+    <div class="form-group"><label>Nom du projet</label><input class="form-input" id="f-proj-nom" placeholder="Ex: Tanougha"></div>
+    <div class="form-row"><div class="form-group"><label>Lieu</label><input class="form-input" id="f-proj-lieu"></div><div class="form-group"><label>Statut</label><select class="form-input" id="f-proj-statut"><option value="En_cours">En cours</option><option value="En_pause">En pause</option><option value="Terminé">Terminé</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Conducteur</label><input class="form-input" id="f-proj-cond"></div><div class="form-group"><label>Comptable</label><input class="form-input" id="f-proj-compt"></div></div>
+    <div class="form-group"><label>Chef Chantier</label><input class="form-input" id="f-proj-chef"></div>
+    <div class="form-row"><div class="form-group"><label>Date début</label><input class="form-input" type="date" id="f-proj-debut"></div><div class="form-group"><label>Date fin</label><input class="form-input" type="date" id="f-proj-fin"></div></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveProject()">Créer</button>`);
+        }
+        function modalEditProject(id) {
+            const p = state.projects.find(x => x.id === id); if (!p) return;
+            openModal('Modifier le Projet', 'fa-pen', `
+    <div class="form-group"><label>Nom du projet</label><input class="form-input" id="f-proj-nom" value="${p.nom}"></div>
+    <div class="form-row"><div class="form-group"><label>Lieu</label><input class="form-input" id="f-proj-lieu" value="${p.lieu}"></div><div class="form-group"><label>Statut</label><select class="form-input" id="f-proj-statut">${['En_cours', 'En_pause', 'Terminé'].map(s => `<option value="${s}"${p.statut === s ? ' selected' : ''}>${s.replace('_', ' ')}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Conducteur</label><input class="form-input" id="f-proj-cond" value="${p.conducteur}"></div><div class="form-group"><label>Comptable</label><input class="form-input" id="f-proj-compt" value="${p.comptable}"></div></div>
+    <div class="form-group"><label>Chef Chantier</label><input class="form-input" id="f-proj-chef" value="${p.chefChantier}"></div>
+    <div class="form-row"><div class="form-group"><label>Date début</label><input class="form-input" type="date" id="f-proj-debut" value="${p.dateDebut}"></div><div class="form-group"><label>Date fin</label><input class="form-input" type="date" id="f-proj-fin" value="${p.dateFin}"></div></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveProject('${id}')">Enregistrer</button>`);
+        }
+        function saveProject(editId) {
+            const nom = document.getElementById('f-proj-nom').value.trim();
+            if (!nom) { toast('Veuillez saisir le nom du projet', 'danger'); return; }
+            const data = { nom, lieu: document.getElementById('f-proj-lieu').value.trim(), statut: document.getElementById('f-proj-statut').value, conducteur: document.getElementById('f-proj-cond').value.trim(), comptable: document.getElementById('f-proj-compt').value.trim(), chefChantier: document.getElementById('f-proj-chef').value.trim(), dateDebut: document.getElementById('f-proj-debut').value, dateFin: document.getElementById('f-proj-fin').value };
+            if (editId) {
+                const p = state.projects.find(x => x.id === editId);
+                if (p) Object.assign(p, data);
+                toast('Projet modifié avec succès');
+            } else {
+                const p = { id: uid(), ...data, materiels: [], personnel: [], stock: [], mouvementsStock: [], pointageMateriel: [], pointagePersonnel: [], avances: [], depenses: [] };
+                state.projects.push(p);
+                state.currentProjectId = p.id;
+                updateProjectSelector();
+                toast('Projet créé avec succès');
+            }
+            save(); closeModal(); renderPage();
+        }
+        function deleteProject(id) {
+            if (state.projects.length <= 1) { toast('Impossible de supprimer le dernier projet', 'danger'); return; }
+            openModal('Confirmer la suppression', 'fa-exclamation-triangle', `<p style="color:var(--text-sec);font-size:13px">Cette action est irréversible. Toutes les données du projet seront perdues.</p>`,
+                `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn" style="background:var(--danger);border-color:var(--danger);color:#fff" onclick="confirmDeleteProject('${id}')">Supprimer</button>`);
+        }
+        function confirmDeleteProject(id) {
+            state.projects = state.projects.filter(p => p.id !== id);
+            if (state.currentProjectId === id) state.currentProjectId = state.projects[0]?.id || null;
+            save(); updateProjectSelector(); closeModal(); renderPage(); toast('Projet supprimé', 'info');
+        }
+
+        // ============================================================
+        // MODULE: GESTION DE STOCK
+        // ============================================================
+        function renderStock() {
+            const p = getProject(); if (!p) return;
+            const c = document.getElementById('content');
+            const recentMouvements = [...p.mouvementsStock].sort((a, b) => parseDate(b.date) - parseDate(a.date)).slice(0, 10);
+
+            c.innerHTML = `<div class="fade-in">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><div class="card-title"><i class="fas fa-warehouse"></i>État du Stock</div></div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Article</th><th>Unité</th><th>Stock Actuel</th><th>Seuil Alerte</th><th>Prix Unitaire</th><th>Valeur Stock</th><th>Dernier Mouvement</th><th>Actions</th></tr></thead>
+          <tbody>${p.stock.map(s => {
+                const cls = s.stockActuel <= s.seuilAlerte ? 'stock-low' : s.stockActuel <= s.seuilAlerte * 1.5 ? 'stock-mid' : 'stock-ok';
+                const lastM = [...p.mouvementsStock].filter(m => m.articleId === s.id).sort((a, b) => parseDate(b.date) - parseDate(a.date))[0];
+                return `<tr>
+              <td><strong>${s.article}</strong></td>
+              <td>${s.unite}</td>
+              <td class="${cls}">${fmt(s.stockActuel)}</td>
+              <td>${fmt(s.seuilAlerte)}</td>
+              <td>${fmt(s.prixUnitaire)} DH</td>
+              <td>${fmt(s.stockActuel * s.prixUnitaire)} DH</td>
+              <td style="font-size:12px;color:var(--text-sec)">${lastM ? dateStr(parseDate(lastM.date)) + ' (' + lastM.type + ')' : '-'}</td>
+              <td><button class="action-btn" onclick="modalEditStockItem('${s.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deleteStockItem('${s.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td>
+            </tr>`}).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title"><i class="fas fa-exchange-alt"></i>Derniers Mouvements</div></div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Article</th><th>Type</th><th>Quantité</th><th>Détails</th><th>N° Bon</th></tr></thead>
+          <tbody>${recentMouvements.length ? recentMouvements.map(m => {
+                    const art = p.stock.find(s => s.id === m.articleId);
+                    return `<tr><td>${dateStr(parseDate(m.date))}</td><td>${art ? art.article : '?'}</td><td><span class="badge ${m.type === 'entree' ? 'badge-success' : 'badge-danger'}">${m.type === 'entree' ? 'Entrée' : 'Sortie'}</span></td><td>${m.type === 'entree' ? '+' : '-'}${fmt(m.quantite)}</td><td style="color:var(--text-sec)">${m.details || '-'}</td><td>${m.bonNumero || '-'}</td></tr>`
+                }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Aucun mouvement enregistré</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+        }
+
+        function modalAddStockItem() {
+            openModal('Nouvel Article', 'fa-box', `
+    <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" placeholder="Ex: Ciment"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${Object.entries(UNITES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Stock Initial</label><input class="form-input" type="number" id="f-art-stock" value="0"></div><div class="form-group"><label>Prix Unitaire (DH)</label><input class="form-input" type="number" id="f-art-prix" value="0"></div></div>
+    <div class="form-group"><label>Seuil d'alerte</label><input class="form-input" type="number" id="f-art-seuil" value="0"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveStockItem()">Ajouter</button>`);
+        }
+        function modalEditStockItem(id) {
+            const p = getProject(); const s = p.stock.find(x => x.id === id); if (!s) return;
+            openModal('Modifier Article', 'fa-pen', `
+    <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" value="${s.article}"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${Object.entries(UNITES).map(([k, v]) => `<option value="${v}"${s.unite === v ? ' selected' : ''}>${v}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Stock Actuel</label><input class="form-input" type="number" id="f-art-stock" value="${s.stockActuel}"></div><div class="form-group"><label>Prix Unitaire (DH)</label><input class="form-input" type="number" id="f-art-prix" value="${s.prixUnitaire}"></div></div>
+    <div class="form-group"><label>Seuil d'alerte</label><input class="form-input" type="number" id="f-art-seuil" value="${s.seuilAlerte}"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveStockItem('${id}')">Enregistrer</button>`);
+        }
+        function saveStockItem(editId) {
+            const p = getProject();
+            const data = { article: document.getElementById('f-art-nom').value.trim(), unite: document.getElementById('f-art-unite').value, stockActuel: parseNum(document.getElementById('f-art-stock').value), prixUnitaire: parseNum(document.getElementById('f-art-prix').value), seuilAlerte: parseNum(document.getElementById('f-art-seuil').value) };
+            if (!data.article) { toast('Veuillez saisir le nom', 'danger'); return; }
+            if (editId) { const s = p.stock.find(x => x.id === editId); if (s) Object.assign(s, data); toast('Article modifié'); }
+            else { p.stock.push({ id: uid(), ...data }); toast('Article ajouté'); }
+            save(); closeModal(); renderPage();
+        }
+        function deleteStockItem(id) {
+            const p = getProject(); p.stock = p.stock.filter(s => s.id !== id); p.mouvementsStock = p.mouvementsStock.filter(m => m.articleId !== id); save(); renderPage(); toast('Article supprimé', 'info');
+        }
+        function modalMouvement(type) {
+            const p = getProject(); if (!p || p.stock.length === 0) { toast('Ajoutez d\'abord des articles', 'danger'); return; }
+            const isGasoil = type === 'sortie';
+            openModal(type === 'entree' ? 'Enregistrer une Entrée' : 'Enregistrer une Sortie', type === 'entree' ? 'fa-arrow-down' : 'fa-arrow-up', `
+    <div class="form-row"><div class="form-group"><label>Article</label><select class="form-input" id="f-mouv-art">${p.stock.map(s => `<option value="${s.id}">${s.article} (${fmt(s.stockActuel)} ${s.unite})</option>`).join('')}</select></div><div class="form-group"><label>Date</label><input class="form-input" type="date" id="f-mouv-date" value="${dateISO(new Date())}"></div></div>
+    <div class="form-row"><div class="form-group"><label>Quantité (${p.stock[0]?.unite || ''})</label><input class="form-input" type="number" id="f-mouv-qte" min="0.01" step="0.01"></div><div class="form-group"><label>N° Bon</label><input class="form-input" id="f-mouv-bon" placeholder="Optionnel"></div></div>
+    <div class="form-group"><label>Détails</label><input class="form-input" id="f-mouv-details" placeholder="Description du mouvement"></div>
+    ${isGasoil ? '<p style="font-size:11px;color:var(--warning);margin-top:4px"><i class="fas fa-info-circle"></i> La sortie sera déduite du stock automatiquement</p>' : ''}
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveMouvement('${type}')">Enregistrer</button>`);
+        }
+        function saveMouvement(type) {
+            const p = getProject();
+            const artId = document.getElementById('f-mouv-art').value;
+            const qte = parseNum(document.getElementById('f-mouv-qte').value);
+            if (qte <= 0) { toast('Quantité invalide', 'danger'); return; }
+            const art = p.stock.find(s => s.id === artId);
+            if (type === 'sortie' && qte > art.stockActuel) { toast(`Stock insuffisant (${fmt(art.stockActuel)} ${art.unite} disponible)`, 'danger'); return; }
+            p.mouvementsStock.push({ id: uid(), articleId: artId, date: document.getElementById('f-mouv-date').value, type, quantite: qte, details: document.getElementById('f-mouv-details').value.trim(), bonNumero: document.getElementById('f-mouv-bon').value.trim() });
+            art.stockActuel += type === 'entree' ? qte : -qte;
+            save(); closeModal(); renderPage(); toast(`${type === 'entree' ? 'Entrée' : 'Sortie'} enregistrée`);
+        }
+
+        // ============================================================
+        // MODULE: MATÉRIELS & CARBURANT
+        // ============================================================
+        function renderMateriels() {
+            const p = getProject(); if (!p) return;
+            const c = document.getElementById('content');
+            const now = new Date(); const y = now.getFullYear(); const m = now.getMonth();
+
+            c.innerHTML = `<div class="fade-in">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><div class="card-title"><i class="fas fa-tractor"></i>Liste des Matériels</div></div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Type</th><th>Locataire</th><th>Prix Jour (DH)</th><th>Unité</th><th>Jours Travaillés (Total)</th><th>NHT ce mois</th><th>Gasoil ce mois (L)</th><th>Coût ce mois (DH)</th><th>Actions</th></tr></thead>
+          <tbody>${p.materiels.map(eq => {
+                const allNHT = p.pointageMateriel.filter(pt => pt.equipementId === eq.id).reduce((s, pt) => s + parseNum(pt.nht), 0);
+                const allDays = parseFloat((allNHT / 9).toFixed(2));
+                const pts = p.pointageMateriel.filter(pt => pt.equipementId === eq.id && parseDate(pt.date) && parseDate(pt.date).getMonth() === m && parseDate(pt.date).getFullYear() === y);
+                const nht = pts.reduce((s, pt) => s + parseNum(pt.nht), 0);
+                const fuel = pts.reduce((s, pt) => s + parseNum(pt.gasoil), 0);
+                const cout = pts.reduce((s, pt) => s + parseNum(pt.prixJ), 0);
+                return `<tr><td><strong>${eq.type}</strong></td><td>${eq.locataire || '-'}</td><td>${fmt(eq.prixJour)}</td><td>${eq.unitePrix}</td><td style="font-weight:700;color:var(--info)">${allDays} j</td><td>${fmt(nht)}</td><td>${fmt(fuel)}</td><td style="font-weight:600">${fmt(cout)}</td>
+            <td><button class="action-btn" style="color:var(--info)" onclick="modalHistoryMateriel('${eq.id}')" title="Historique"><i class="fas fa-history"></i></button> <button class="action-btn" onclick="modalEditMateriel('${eq.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deleteMateriel('${eq.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td></tr>`
+            }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fas fa-clipboard-list"></i>Pointage du Mois</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-input" id="sel-materiel-mois" style="width:auto;font-size:12px">${p.materiels.map(eq => `<option value="${eq.id}">${eq.type}</option>`).join('')}</select>
+          <input class="form-input" type="month" id="sel-pointage-mois" value="${y}-${String(m + 1).padStart(2, '0')}" style="width:auto;font-size:12px">
+          <button class="topbar-btn primary" onclick="renderPointageGrid()" style="font-size:12px"><i class="fas fa-sync"></i> Actualiser</button>
+        </div>
+      </div>
+      <div id="pointage-grid-container"></div>
+    </div>
+  </div>`;
+            renderPointageGrid();
+        }
+
+        function renderPointageGrid() {
+            const p = getProject(); if (!p) return;
+            const eqId = document.getElementById('sel-materiel-mois')?.value;
+            const moisVal = document.getElementById('sel-pointage-mois')?.value;
+            if (!eqId || !moisVal) return;
+            const [sy, sm] = moisVal.split('-').map(Number);
+            const nd = daysInMonth(sy, sm - 1);
+            const eq = p.materiels.find(e => e.id === eqId); if (!eq) return;
+            const pts = p.pointageMateriel.filter(pt => pt.equipementId === eqId && parseDate(pt.date) && parseDate(pt.date).getMonth() === sm - 1 && parseDate(pt.date).getFullYear() === sy);
+
+            const container = document.getElementById('pointage-grid-container');
+            let html = `<div style="margin-bottom:12px;font-size:12px;color:var(--text-sec)">
+    <strong style="color:var(--text)">${eq.type}</strong> &mdash; Locataire: ${eq.locataire || '-'} &mdash; ${MONTHS_FR[sm - 1]} ${sy}
+  </div><div style="overflow-x:auto"><table class="data-table" style="font-size:12px">
+    <thead><tr><th style="min-width:90px">Date</th><th>Description</th><th>Gasoil (L)</th><th>NHT</th><th>Panne</th><th>Rendement</th><th>Prix J (DH)</th><th>Obs.</th><th></th></tr></thead><tbody>`;
+
+            for (let d = 1; d <= nd; d++) {
+                const dateStr = `${sy}-${String(sm).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const pt = pts.find(x => x.date === dateStr);
+                if (pt) {
+                    html += `<tr style="${pt.panNbrH > 0 ? 'background:rgba(239,68,68,.05)' : ''}">
+        <td style="font-weight:600">${dateStr(parseDate(dateStr))}</td>
+        <td>${pt.description || '-'}</td>
+        <td style="${parseNum(pt.gasoil) > 0 ? 'color:var(--accent);font-weight:600' : ''}">${parseNum(pt.gasoil) > 0 ? fmt(pt.gasoil) : '-'}</td>
+        <td style="font-weight:600">${parseNum(pt.nht) > 0 ? fmt(pt.nht) : '-'}</td>
+        <td>${pt.panNbrH > 0 ? `<span class="badge badge-danger">${pt.panneType} (${pt.panNbrH}h)</span>` : '-'}</td>
+        <td>${pt.rendement || '-'}</td>
+        <td style="font-weight:600">${parseNum(pt.prixJ) > 0 ? fmt(pt.prixJ) : '-'}</td>
+        <td style="color:var(--text-sec);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pt.observation || '-'}</td>
+        <td><button class="action-btn" onclick="modalEditPointage('${pt.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deletePointage('${pt.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td>
+      </tr>`;
+                } else {
+                    html += `<tr style="color:var(--text-muted)"><td>${dateStr(parseDate(dateStr))}</td><td colspan="7" style="text-align:center">-</td><td><button class="action-btn" onclick="modalEditPointage(null,'${eqId}','${dateStr}')" title="Ajouter"><i class="fas fa-plus"></i></button></td></tr>`;
+                }
+            }
+            // Totaux
+            const totalNHT = pts.reduce((s, pt) => s + parseNum(pt.nht), 0);
+            const totalFuel = pts.reduce((s, pt) => s + parseNum(pt.gasoil), 0);
+            const totalPrix = pts.reduce((s, pt) => s + parseNum(pt.prixJ), 0);
+            const totalPanne = pts.reduce((s, pt) => s + parseNum(pt.panNbrH), 0);
+            html += `<tr style="background:var(--bg-card-hover);font-weight:700;border-top:2px solid var(--accent)">
+    <td>TOTAL</td><td>${pts.length} jours</td>
+    <td style="color:var(--accent)">${fmt(totalFuel)}</td>
+    <td>${fmt(totalNHT)}</td>
+    <td>${totalPanne > 0 ? fmt(totalPanne) + 'h' : '-'}</td>
+    <td>-</td>
+    <td>${fmt(totalPrix)}</td><td>-</td><td></td>
+  </tr></tbody></table></div>`;
+            container.innerHTML = html;
+        }
+
+        function modalAddMateriel() {
+            openModal('Ajouter un Matériel', 'fa-tractor', `
+    <div class="form-group"><label>Type de matériel</label><input class="form-input" id="f-eq-type" placeholder="Ex: Pelle pneu Cas 170"></div>
+    <div class="form-row"><div class="form-group"><label>Locataire</label><input class="form-input" id="f-eq-loc"></div><div class="form-group"><label>Unité de facturation</label><select class="form-input" id="f-eq-unite"><option value="J">Par Jour</option><option value="V">Par Voyage</option><option value="M">Par Mois</option></select></div></div>
+    <div class="form-group"><label>Prix unitaire (DH)</label><input class="form-input" type="number" id="f-eq-prix" value="0"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveMateriel()">Ajouter</button>`);
+        }
+        function modalEditMateriel(id) {
+            const p = getProject(); const eq = p.materiels.find(e => e.id === id); if (!eq) return;
+            openModal('Modifier Matériel', 'fa-pen', `
+    <div class="form-group"><label>Type de matériel</label><input class="form-input" id="f-eq-type" value="${eq.type}"></div>
+    <div class="form-row"><div class="form-group"><label>Locataire</label><input class="form-input" id="f-eq-loc" value="${eq.locataire || ''}"></div><div class="form-group"><label>Unité de facturation</label><select class="form-input" id="f-eq-unite">${['J', 'V', 'M'].map(u => `<option value="${u}"${eq.unitePrix === u ? ' selected' : ''}>${u === 'J' ? 'Par Jour' : u === 'V' ? 'Par Voyage' : 'Par Mois'}</option>`).join('')}</select></div></div>
+    <div class="form-group"><label>Prix unitaire (DH)</label><input class="form-input" type="number" id="f-eq-prix" value="${eq.prixJour}"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveMateriel('${id}')">Enregistrer</button>`);
+        }
+        function saveMateriel(editId) {
+            const p = getProject();
+            const data = { type: document.getElementById('f-eq-type').value.trim(), locataire: document.getElementById('f-eq-loc').value.trim(), unitePrix: document.getElementById('f-eq-unite').value, prixJour: parseNum(document.getElementById('f-eq-prix').value) };
+            if (!data.type) { toast('Veuillez saisir le type', 'danger'); return; }
+            if (editId) { const eq = p.materiels.find(e => e.id === editId); if (eq) Object.assign(eq, data); toast('Matériel modifié'); }
+            else { p.materiels.push({ id: uid(), ...data }); toast('Matériel ajouté'); }
+            save(); closeModal(); renderPage();
+        }
+        function deleteMateriel(id) { const p = getProject(); p.materiels = p.materiels.filter(e => e.id !== id); p.pointageMateriel = p.pointageMateriel.filter(pt => pt.equipementId !== id); save(); renderPage(); toast('Matériel supprimé', 'info'); }
+
+        function modalAddPointage() {
+            const p = getProject(); if (!p || p.materiels.length === 0) { toast('Ajoutez d\'abord un matériel', 'danger'); return; }
+            openModal('Pointage Journalier', 'fa-clipboard-check', `
+    <div class="form-row"><div class="form-group"><label>Matériel</label><select class="form-input" id="f-pt-eq">${p.materiels.map(e => `<option value="${e.id}">${e.type}</option>`).join('')}</select></div><div class="form-group"><label>Date</label><input class="form-input" type="date" id="f-pt-date" value="${dateISO(new Date())}"></div></div>
+    <div class="form-group"><label>Description</label><input class="form-input" id="f-pt-desc" placeholder="Travaux réalisés"></div>
+    <div class="form-row"><div class="form-group"><label>Gasoil (L)</label><input class="form-input" type="number" id="f-pt-gasoil" value="0" min="0"></div><div class="form-group"><label>NHT (heures)</label><input class="form-input" type="number" id="f-pt-nht" value="0" min="0" step="0.5"></div></div>
+    <div class="form-row"><div class="form-group"><label>Type Panne</label><input class="form-input" id="f-pt-ptype" placeholder="Ex: Flixbl"></div><div class="form-group"><label>Durée Panne (h)</label><input class="form-input" type="number" id="f-pt-ph" value="0" min="0"></div></div>
+    <div class="form-row"><div class="form-group"><label>Rendement</label><input class="form-input" id="f-pt-rend" placeholder="Ex: 18 voyages"></div><div class="form-group"><label>Prix Jour (DH)</label><input class="form-input" type="number" id="f-pt-prix" value="0" min="0"></div></div>
+    <div class="form-group"><label>Observation</label><input class="form-input" id="f-pt-obs"></div>
+    <p style="font-size:11px;color:var(--warning);margin-top:4px"><i class="fas fa-gas-pump"></i> Le gasoil sera déduit automatiquement du stock Gasoil du projet</p>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="savePointage()">Enregistrer</button>`);
+        }
+        function modalEditPointage(ptId, eqId, dateVal) {
+            const p = getProject();
+            let pt = ptId ? p.pointageMateriel.find(x => x.id === ptId) : null;
+            const eq = pt ? p.materiels.find(e => e.id === pt.equipementId) : (eqId ? p.materiels.find(e => e.id === eqId) : null);
+            if (!eq) return;
+            openModal(pt ? 'Modifier Pointage' : 'Ajouter Pointage', 'fa-pen', `
+    <div class="form-row"><div class="form-group"><label>Matériel</label><input class="form-input" value="${eq.type}" disabled></div><div class="form-group"><label>Date</label><input class="form-input" type="date" id="f-pt-date" value="${pt ? pt.date : dateVal || dateISO(new Date())}" ${pt ? 'disabled' : ''}></div></div>
+    <div class="form-group"><label>Description</label><input class="form-input" id="f-pt-desc" value="${pt ? pt.description : ''}"></div>
+    <div class="form-row"><div class="form-group"><label>Gasoil (L)</label><input class="form-input" type="number" id="f-pt-gasoil" value="${pt ? pt.gasoil : 0}" min="0"></div><div class="form-group"><label>NHT (heures)</label><input class="form-input" type="number" id="f-pt-nht" value="${pt ? pt.nht : 0}" min="0" step="0.5"></div></div>
+    <div class="form-row"><div class="form-group"><label>Type Panne</label><input class="form-input" id="f-pt-ptype" value="${pt ? pt.panneType : ''}"></div><div class="form-group"><label>Durée Panne (h)</label><input class="form-input" type="number" id="f-pt-ph" value="${pt ? pt.panNbrH : 0}" min="0"></div></div>
+    <div class="form-row"><div class="form-group"><label>Rendement</label><input class="form-input" id="f-pt-rend" value="${pt ? pt.rendement : ''}"></div><div class="form-group"><label>Prix Jour (DH)</label><input class="form-input" type="number" id="f-pt-prix" value="${pt ? pt.prixJ : 0}" min="0"></div></div>
+    <div class="form-group"><label>Observation</label><input class="form-input" id="f-pt-obs" value="${pt ? pt.observation : ''}"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="savePointage('${ptId || ''}','${eq.id}')">Enregistrer</button>`);
+        }
+        function savePointage(editId, eqId) {
+            const p = getProject();
+            let finalEqId = eqId;
+            if (!finalEqId) {
+                if (editId) {
+                    finalEqId = p.pointageMateriel.find(x => x.id === editId)?.equipementId;
+                } else {
+                    const sel = document.getElementById('f-pt-eq');
+                    finalEqId = sel ? sel.value : null;
+                }
+            }
+            let pJ = parseNum(document.getElementById('f-pt-prix').value);
+            const eq = p.materiels.find(e => e.id === finalEqId);
+            if (pJ === 0 && eq) pJ = eq.prixJour;
+
+            const data = {
+                equipementId: finalEqId,
+                date: document.getElementById('f-pt-date').value,
+                description: document.getElementById('f-pt-desc').value.trim(),
+                gasoil: parseNum(document.getElementById('f-pt-gasoil').value),
+                nht: parseNum(document.getElementById('f-pt-nht').value),
+                panneType: document.getElementById('f-pt-ptype').value.trim(),
+                panNbrH: parseNum(document.getElementById('f-pt-ph').value),
+                rendement: document.getElementById('f-pt-rend').value.trim(),
+                prixJ: pJ,
+                observation: document.getElementById('f-pt-obs').value.trim()
+            };
+            if (!data.date) { toast('Date requise', 'danger'); return; }
+            const gasoilStock = p.stock.find(s => s.article === 'Gasoil');
+
+            if (editId) {
+                const old = p.pointageMateriel.find(x => x.id === editId);
+                if (old && gasoilStock) {
+                    const diffGasoil = data.gasoil - parseNum(old.gasoil);
+                    if (diffGasoil !== 0) {
+                        if (gasoilStock.stockActuel + diffGasoil < 0) { toast(`Stock gasoil insuffisant (${fmt(gasoilStock.stockActuel)} L)`, 'danger'); return; }
+                        gasoilStock.stockActuel += diffGasoil;
+                        p.mouvementsStock.push({ id: uid(), articleId: gasoilStock.id, date: data.date, type: 'sortie', quantite: Math.abs(diffGasoil), details: `Ajustement pointage ${p.materiels.find(e => e.id === data.equipementId)?.type || ''}`, bonNumero: '' });
+                    }
+                }
+                Object.assign(old, data);
+                toast('Pointage modifié');
+            } else {
+                // Vérifier doublon
+                if (p.pointageMateriel.find(pt => pt.equipementId === data.equipementId && pt.date === data.date)) { toast('Un pointage existe déjà pour cette date', 'danger'); return; }
+                // Déduire gasoil du stock
+                if (data.gasoil > 0 && gasoilStock) {
+                    if (gasoilStock.stockActuel < data.gasoil) { toast(`Stock gasoil insuffisant (${fmt(gasoilStock.stockActuel)} L pour ${data.gasoil} L demandé)`, 'danger'); return; }
+                    gasoilStock.stockActuel -= data.gasoil;
+                    p.mouvementsStock.push({ id: uid(), articleId: gasoilStock.id, date: data.date, type: 'sortie', quantite: data.gasoil, details: `Pointage ${p.materiels.find(e => e.id === data.equipementId)?.type || ''}`, bonNumero: '' });
+                }
+                p.pointageMateriel.push({ id: uid(), ...data });
+                toast('Pointage enregistré');
+            }
+            save(); closeModal(); renderPage();
+        }
+
+        function deletePointage(id) {
+            const p = getProject();
+            const pt = p.pointageMateriel.find(x => x.id === id);
+            if (!pt) return;
+            // Restituer le gasoil au stock si nécessaire
+            if (parseNum(pt.gasoil) > 0) {
+                const gasoilStock = p.stock.find(s => s.article === 'Gasoil');
+                if (gasoilStock) {
+                    gasoilStock.stockActuel += parseNum(pt.gasoil);
+                    p.mouvementsStock.push({ id: uid(), articleId: gasoilStock.id, date: pt.date, type: 'entree', quantite: parseNum(pt.gasoil), details: 'Annulation pointage', bonNumero: '' });
+                }
+            }
+            p.pointageMateriel = p.pointageMateriel.filter(x => x.id !== id);
+            save(); renderPage(); toast('Pointage supprimé', 'info');
+        }
+
+        function modalHistoryMateriel(id) {
+            const p = getProject();
+            const eq = p.materiels.find(e => e.id === id);
+            if (!eq) return;
+            const pts = p.pointageMateriel.filter(pt => pt.equipementId === id).sort((a, b) => parseDate(b.date) - parseDate(a.date));
+            const totalNHT = pts.reduce((s, pt) => s + parseNum(pt.nht), 0);
+            const totalFuel = pts.reduce((s, pt) => s + parseNum(pt.gasoil), 0);
+            const totalCout = pts.reduce((s, pt) => s + parseNum(pt.prixJ), 0);
+            let html = `
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Jours</div>
+                <div style="font-size:20px;font-weight:800;color:var(--info)">${parseFloat((totalNHT / 9).toFixed(2))}</div>
+              </div>
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total NHT (h)</div>
+                <div style="font-size:20px;font-weight:800;color:var(--success)">${fmt(totalNHT)}</div>
+              </div>
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Gasoil (L)</div>
+                <div style="font-size:20px;font-weight:800;color:var(--accent)">${fmt(totalFuel)}</div>
+              </div>
+            </div>
+            <div style="max-height:360px;overflow-y:auto">
+              <table class="data-table" style="font-size:12px">
+                <thead><tr><th>Date</th><th>NHT (h)</th><th>Gasoil (L)</th><th>Rendement</th><th>Panne</th><th>Prix J (DH)</th><th>Obs.</th><th></th></tr></thead>
+                <tbody>`;
+            if (pts.length === 0) {
+                html += `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Aucun historique de pointage</td></tr>`;
+            } else {
+                pts.forEach(pt => {
+                    html += `<tr>
+                      <td style="font-weight:600">${dateStr(parseDate(pt.date))}</td>
+                      <td style="font-weight:700;color:var(--success)">${parseNum(pt.nht) > 0 ? fmt(pt.nht) : '-'}</td>
+                      <td style="font-weight:700;color:var(--accent)">${parseNum(pt.gasoil) > 0 ? fmt(pt.gasoil) : '-'}</td>
+                      <td style="color:var(--text-sec)">${pt.rendement || '-'}</td>
+                      <td>${pt.panNbrH > 0 ? `<span class="badge badge-danger">${pt.panneType || '?'} (${pt.panNbrH}h)</span>` : '-'}</td>
+                      <td style="font-weight:600">${parseNum(pt.prixJ) > 0 ? fmt(pt.prixJ) : '-'}</td>
+                      <td style="color:var(--text-sec)">${pt.observation || '-'}</td>
+                      <td>
+                        <button class="action-btn" onclick="closeModal();setTimeout(()=>modalEditPointage('${pt.id}'),100)" title="Modifier"><i class="fas fa-pen"></i></button>
+                        <button class="action-btn danger" onclick="deletePointage('${pt.id}');closeModal();setTimeout(()=>modalHistoryMateriel('${id}'),100)" title="Supprimer"><i class="fas fa-trash"></i></button>
+                      </td>
+                    </tr>`;
+                });
+            }
+            html += `</tbody></table></div>`;
+            openModal(`Historique : ${eq.type}`, 'fa-history', html, `<button class="topbar-btn" onclick="closeModal()">Fermer</button>`);
+        }
+
+        // ============================================================
+        // MODULE: PERSONNEL
+        // ============================================================
+        function renderPersonnel() {
+            const p = getProject(); if (!p) return;
+            const c = document.getElementById('content');
+            const now = new Date(); const y = now.getFullYear(); const m = now.getMonth();
+
+            c.innerHTML = `<div class="fade-in">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><div class="card-title"><i class="fas fa-users"></i>Liste du Personnel</div></div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="personnel-summary-table">
+          <thead><tr><th>Nom</th><th>Fonction</th><th>Prix Jour (DH)</th><th>Jours ce mois</th><th>Salaire ce mois</th><th>Avances</th><th>Reste à payer</th><th>Actions</th></tr></thead>
+          <tbody id="personnel-summary-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fas fa-calendar-check"></i>Grille de Présence</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" type="month" id="sel-pers-mois" value="${y}-${String(m + 1).padStart(2, '0')}" style="width:auto;font-size:12px">
+          <button class="topbar-btn primary" onclick="renderPersGrid()" style="font-size:12px"><i class="fas fa-sync"></i> Actualiser</button>
+        </div>
+      </div>
+      <div id="pers-grid-container" style="overflow-x:auto"></div>
+    </div>
+  </div>`;
+            renderPersGrid();
+        }
+
+        function renderPersonnelSummary(sy, sm) {
+            const p = getProject(); if (!p) return;
+            const tbody = document.getElementById('personnel-summary-body'); if (!tbody) return;
+            tbody.innerHTML = p.personnel.map(pe => {
+                const jours = p.pointagePersonnel.filter(pp => pp.personnelId === pe.id && parseDate(pp.date) && parseDate(pp.date).getMonth() === sm - 1 && parseDate(pp.date).getFullYear() === sy).reduce((s, pp) => s + pp.presence, 0);
+                const salaire = Math.round(jours * pe.prixJour);
+                const avances = p.avances.filter(a => a.personnelId === pe.id && parseDate(a.date) && parseDate(a.date).getMonth() === sm - 1 && parseDate(a.date).getFullYear() === sy).reduce((s, a) => s + a.montant, 0);
+                const reste = Math.max(0, salaire - avances);
+                return `<tr><td><strong>${pe.nom}</strong></td><td>${pe.fonction}</td><td>${fmt(pe.prixJour)}</td><td style="font-weight:600">${fmt(jours)}</td><td style="font-weight:600">${fmt(salaire)} DH</td><td style="color:var(--danger)">${fmt(avances)} DH</td><td class="${reste === 0 ? 'stock-ok' : 'stock-mid'}">${fmt(reste)} DH</td>
+            <td><button class="action-btn" onclick="modalEditPersonnel('${pe.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deletePersonnel('${pe.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td></tr>`;
+            }).join('');
+        }
+
+
+        function renderPersGrid() {
+            const p = getProject(); if (!p) return;
+            const moisVal = document.getElementById('sel-pers-mois')?.value; if (!moisVal) return;
+            const [sy, sm] = moisVal.split('-').map(Number);
+            const nd = daysInMonth(sy, sm - 1);
+            const container = document.getElementById('pers-grid-container');
+
+            // Sync the summary table with the selected month
+            renderPersonnelSummary(sy, sm);
+
+            let html = `<table class="data-table" style="font-size:11px"><thead><tr><th style="min-width:140px;position:sticky;left:0;background:var(--bg-card);z-index:2">Nom & Fonction</th>`;
+            for (let d = 1; d <= nd; d++) html += `<th style="min-width:32px;text-align:center;padding:6px 2px">${d}</th>`;
+            html += `<th style="min-width:50px">Total</th><th style="min-width:90px">Avance (DH)</th><th style="min-width:90px">Reste</th></tr></thead><tbody>`;
+
+            p.personnel.forEach(pe => {
+                html += `<tr><td style="position:sticky;left:0;background:var(--bg-card);z-index:1"><strong>${pe.nom}</strong><br><span style="color:var(--text-sec);font-size:10px">${pe.fonction} — ${pe.prixJour} DH/j</span></td>`;
+                let totalJ = 0;
+                for (let d = 1; d <= nd; d++) {
+                    const dateStr = `${sy}-${String(sm).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const pp = p.pointagePersonnel.find(x => x.personnelId === pe.id && x.date === dateStr);
+                    const val = pp ? pp.presence : 0;
+                    totalJ += val;
+                    const cls = val >= 1 ? 'present' : val > 0 ? 'half' : 'absent';
+                    html += `<td style="text-align:center;padding:4px 1px"><span class="att-cell ${cls}" onclick="togglePresence('${pe.id}','${dateStr}')"> ${val > 0 ? (val >= 1 ? '1' : '½') : '-'}</span></td>`;
+                }
+                const salaire = Math.round(totalJ * pe.prixJour);
+                const avances = p.avances.filter(a => a.personnelId === pe.id && parseDate(a.date) && parseDate(a.date).getMonth() === sm - 1 && parseDate(a.date).getFullYear() === sy).reduce((s, a) => s + a.montant, 0);
+                const reste = Math.max(0, salaire - avances);
+                html += `<td style="font-weight:700;text-align:center">${totalJ}</td><td style="color:var(--danger)">${fmt(avances)}</td><td class="${reste === 0 ? 'stock-ok' : 'stock-mid'}">${fmt(reste)}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function togglePresence(persId, dateStr) {
+            const p = getProject();
+            const existing = p.pointagePersonnel.find(pp => pp.personnelId === persId && pp.date === dateStr);
+            if (existing) {
+                const cycle = [1, 0.5, 0];
+                const idx = cycle.indexOf(existing.presence);
+                if (idx === cycle.length - 1) { p.pointagePersonnel = p.pointagePersonnel.filter(pp => pp !== existing); }
+                else { existing.presence = cycle[idx + 1]; }
+            } else {
+                p.pointagePersonnel.push({ id: uid(), personnelId: persId, date: dateStr, presence: 1 });
+            }
+            save();
+            renderPersGrid(); // renderPersGrid now also calls renderPersonnelSummary
+        }
+
+        function modalAddPersonnel() {
+            openModal('Ajouter du Personnel', 'fa-user-plus', `
+    <div class="form-group"><label>Nom complet</label><input class="form-input" id="f-pe-nom" placeholder="Ex: Mohamed Brini"></div>
+    <div class="form-row"><div class="form-group"><label>Fonction</label><select class="form-input" id="f-pe-fonction"><option>Ouvrier</option><option>Maçon</option><option>Chauffeur</option><option>Gardien</option><option>Comptable</option><option>Chef Chantier</option><option>Conducteur</option><option>Autre</option></select></div><div class="form-group"><label>CIN</label><input class="form-input" id="f-pe-cin"></div></div>
+    <div class="form-row"><div class="form-group"><label>Prix Jour (DH)</label><input class="form-input" type="number" id="f-pe-prix" value="80"></div><div class="form-group"><label>Salaire Mensuel (DH)</label><input class="form-input" type="number" id="f-pe-sal" value="0"></div></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="savePersonnel()">Ajouter</button>`);
+        }
+        function modalEditPersonnel(id) {
+            const p = getProject(); const pe = p.personnel.find(x => x.id === id); if (!pe) return;
+            openModal('Modifier Personnel', 'fa-pen', `
+    <div class="form-group"><label>Nom complet</label><input class="form-input" id="f-pe-nom" value="${pe.nom}"></div>
+    <div class="form-row"><div class="form-group"><label>Fonction</label><select class="form-input" id="f-pe-fonction">${['Ouvrier', 'Maçon', 'Chauffeur', 'Gardien', 'Comptable', 'Chef Chantier', 'Conducteur', 'Autre'].map(f => `<option${pe.fonction === f ? ' selected' : ''}>${f}</option>`).join('')}</select></div><div class="form-group"><label>CIN</label><input class="form-input" id="f-pe-cin" value="${pe.cin || ''}"></div></div>
+    <div class="form-row"><div class="form-group"><label>Prix Jour (DH)</label><input class="form-input" type="number" id="f-pe-prix" value="${pe.prixJour}"></div><div class="form-group"><label>Salaire Mensuel (DH)</label><input class="form-input" type="number" id="f-pe-sal" value="${pe.salaireMensuel || 0}"></div></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="savePersonnel('${id}')">Enregistrer</button>`);
+        }
+        function savePersonnel(editId) {
+            const p = getProject();
+            const data = { nom: document.getElementById('f-pe-nom').value.trim(), cin: document.getElementById('f-pe-cin').value.trim(), fonction: document.getElementById('f-pe-fonction').value, prixJour: parseNum(document.getElementById('f-pe-prix').value), salaireMensuel: parseNum(document.getElementById('f-pe-sal').value) };
+            if (!data.nom) { toast('Nom requis', 'danger'); return; }
+            if (editId) { const pe = p.personnel.find(x => x.id === editId); if (pe) Object.assign(pe, data); toast('Personnel modifié'); }
+            else { p.personnel.push({ id: uid(), ...data }); toast('Personnel ajouté'); }
+            save(); closeModal(); renderPage();
+        }
+        function deletePersonnel(id) { const p = getProject(); p.personnel = p.personnel.filter(x => x.id !== id); p.pointagePersonnel = p.pointagePersonnel.filter(pp => pp.personnelId !== id); p.avances = p.avances.filter(a => a.personnelId !== id); save(); renderPage(); toast('Personnel supprimé', 'info'); }
+
+        function modalAvance() {
+            const p = getProject(); if (!p || p.personnel.length === 0) { toast('Ajoutez d\'abord du personnel', 'danger'); return; }
+            openModal('Enregistrer une Avance', 'fa-hand-holding-dollar', `
+    <div class="form-row"><div class="form-group"><label>Personnel</label><select class="form-input" id="f-av-pers">${p.personnel.map(pe => `<option value="${pe.id}">${pe.nom} (${pe.fonction})</option>`).join('')}</select></div><div class="form-group"><label>Date</label><input class="form-input" type="date" id="f-av-date" value="${dateISO(new Date())}"></div></div>
+    <div class="form-group"><label>Montant (DH)</label><input class="form-input" type="number" id="f-av-montant" min="1"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveAvance()">Enregistrer</button>`);
+        }
+        function saveAvance() {
+            const p = getProject();
+            const montant = parseNum(document.getElementById('f-av-montant').value);
+            if (montant <= 0) { toast('Montant invalide', 'danger'); return; }
+            p.avances.push({ id: uid(), personnelId: document.getElementById('f-av-pers').value, date: document.getElementById('f-av-date').value, montant });
+            save(); closeModal(); renderPage(); toast(`Avance de ${fmt(montant)} DH enregistrée`);
+        }
+
+        // ============================================================
+        // MODULE: DÉPENSES
+        // ============================================================
+        function renderDepenses() {
+            const p = getProject(); if (!p) return;
+            const c = document.getElementById('content');
+            const sorted = [...p.depenses].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+            const total = sorted.reduce((s, d) => s + d.montant, 0);
+
+            // Regroupement par date pour les derniers 10 jours
+            const last10 = sorted.slice(0, 15);
+            const byDate = {};
+            last10.forEach(d => { if (!byDate[d.date]) byDate[d.date] = 0; byDate[d.date] += d.montant; });
+
+            c.innerHTML = `<div class="fade-in">
+    <div class="kpi-grid" style="margin-bottom:16px">
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(245,158,11,.12);color:#fbbf24"><i class="fas fa-coins"></i></div><div class="kpi-info"><h3>Total Dépenses</h3><div class="value">${fmt(total)} DH</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(16,185,129,.12);color:#34d399"><i class="fas fa-receipt"></i></div><div class="kpi-info"><h3>Nb Écritures</h3><div class="value">${sorted.length}</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(6,182,212,.12);color:#22d3ee"><i class="fas fa-calculator"></i></div><div class="kpi-info"><h3>Moyenne / jour</h3><div class="value">${fmt(sorted.length ? Math.round(total / Math.max(1, new Set(sorted.map(d => d.date)).size)) : 0)} DH</div></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i>Dépenses par Jour</div></div><div class="chart-container"><canvas id="chart-dep-daily"></canvas></div></div>
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-chart-pie"></i>Répartition</div></div><div class="chart-container"><canvas id="chart-dep-repart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title"><i class="fas fa-list"></i>Détail des Dépenses</div>
+        <div style="display:flex;gap:8px">
+          <select class="form-input" id="filtre-cat" style="width:auto;font-size:12px" onchange="renderDepenses()"><option value="">Toutes catégories</option>${CATEGORIES_DEPENSE.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant (DH)</th><th>Actions</th></tr></thead>
+          <tbody>${last10.map(d => {
+                const catColors = { Matériaux: 'badge-info', 'Main d\'œuvre': 'badge-success', Matériels: 'badge-warning', Carburant: 'badge-danger', Transport: '', Divers: '' };
+                return `<tr><td>${dateStr(parseDate(d.date))}</td><td><span class="badge ${catColors[d.categorie] || 'badge-info'}">${d.categorie}</span></td><td>${d.description || '-'}</td><td style="font-weight:700">${fmt(d.montant)}</td>
+            <td><button class="action-btn" onclick="modalEditDepense('${d.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deleteDepense('${d.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td></tr>`
+            }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+
+            // Graphiques
+            const dates = Object.keys(byDate).sort();
+            const catColors2 = ['#f59e0b', '#06b6d4', '#10b981', '#ef4444', '#8b5cf6', '#6b7280'];
+            charts['dep-daily'] = new Chart(document.getElementById('chart-dep-daily'), {
+                type: 'bar', data: { labels: dates.map(d => dateStr(parseDate(d)).slice(0, 5)), datasets: [{ label: 'DH', data: dates.map(d => byDate[d]), backgroundColor: '#f59e0b', borderRadius: 6, maxBarThickness: 30 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a80a0', font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#7a80a0', font: { size: 10 } }, grid: { color: '#262c40' } } } }
+            });
+
+            const byCat = {}; CATEGORIES_DEPENSE.forEach(c => byCat[c] = 0);
+            sorted.forEach(d => { byCat[d.categorie] = (byCat[d.categorie] || 0) + d.montant });
+            charts['dep-repart'] = new Chart(document.getElementById('chart-dep-repart'), {
+                type: 'doughnut', data: { labels: CATEGORIES_DEPENSE, datasets: [{ data: CATEGORIES_DEPENSE.map(c => byCat[c]), backgroundColor: catColors2, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: '#7a80a0', font: { size: 10 }, padding: 6, usePointStyle: true, pointStyleWidth: 8 } } } }
+            });
+        }
+
+        function modalAddDepense() {
+            openModal('Ajouter une Dépense', 'fa-plus', `
+    <div class="form-row"><div class="form-group"><label>Date</label><input class="form-input" type="date" id="f-dep-date" value="${dateISO(new Date())}"></div><div class="form-group"><label>Catégorie</label><select class="form-input" id="f-dep-cat">${CATEGORIES_DEPENSE.map(c => `<option>${c}</option>`).join('')}</select></div></div>
+    <div class="form-group"><label>Description</label><input class="form-input" id="f-dep-desc" placeholder="Détail de la dépense"></div>
+    <div class="form-group"><label>Montant (DH)</label><input class="form-input" type="number" id="f-dep-montant" min="0.01" step="0.01"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveDepense()">Enregistrer</button>`);
+        }
+        function modalEditDepense(id) {
+            const p = getProject(); const d = p.depenses.find(x => x.id === id); if (!d) return;
+            openModal('Modifier Dépense', 'fa-pen', `
+    <div class="form-row"><div class="form-group"><label>Date</label><input class="form-input" type="date" id="f-dep-date" value="${d.date}"></div><div class="form-group"><label>Catégorie</label><select class="form-input" id="f-dep-cat">${CATEGORIES_DEPENSE.map(c => `<option${d.categorie === c ? ' selected' : ''}>${c}</option>`).join('')}</select></div></div>
+    <div class="form-group"><label>Description</label><input class="form-input" id="f-dep-desc" value="${d.description || ''}"></div>
+    <div class="form-group"><label>Montant (DH)</label><input class="form-input" type="number" id="f-dep-montant" value="${d.montant}"></div>
+  `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveDepense('${id}')">Enregistrer</button>`);
+        }
+        function saveDepense(editId) {
+            const p = getProject();
+            const data = { date: document.getElementById('f-dep-date').value, categorie: document.getElementById('f-dep-cat').value, description: document.getElementById('f-dep-desc').value.trim(), montant: parseNum(document.getElementById('f-dep-montant').value) };
+            if (data.montant <= 0) { toast('Montant invalide', 'danger'); return; }
+            if (editId) { const d = p.depenses.find(x => x.id === editId); if (d) Object.assign(d, data); toast('Dépense modifiée'); }
+            else { p.depenses.push({ id: uid(), ...data }); toast('Dépense ajoutée'); }
+            save(); closeModal(); renderPage();
+        }
+        function deleteDepense(id) { const p = getProject(); p.depenses = p.depenses.filter(x => x.id !== id); save(); renderPage(); toast('Dépense supprimée', 'info'); }
+
+        function exportDepenses() {
+            const p = getProject(); if (!p || p.depenses.length === 0) { toast('Aucune dépense à exporter', 'danger'); return; }
+            const sorted = [...p.depenses].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+            let csv = '\ufeffDate;Catégorie;Description;Montant (DH)\n';
+            sorted.forEach(d => { csv += `${d.date};${d.categorie};${d.description || ''};${d.montant}\n`; });
+            dlCSV(csv, `depenses_${p.nom}_${dateISO(new Date())}.csv`);
+            toast('Export Excel téléchargé ✓');
+        }
+
+        function exportStock() {
+            const p = getProject(); if (!p || p.stock.length === 0) { toast('Aucun article dans le stock', 'danger'); return; }
+            let csv = '\ufeffArticle;Unité;Stock Actuel;Seuil Alerte;Prix Unitaire (DH);Valeur Stock (DH)\n';
+            p.stock.forEach(s => {
+                csv += `${s.article};${s.unite};${s.stockActuel};${s.seuilAlerte};${s.prixUnitaire};${s.stockActuel * s.prixUnitaire}\n`;
+            });
+            csv += '\n\ufeffMouvements de Stock\nDate;Article;Type;Quantité;Détails;N° Bon\n';
+            const mouvs = [...p.mouvementsStock].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+            mouvs.forEach(m => {
+                const art = p.stock.find(s => s.id === m.articleId);
+                csv += `${m.date};${art ? art.article : '?'};${m.type === 'entree' ? 'Entrée' : 'Sortie'};${m.quantite};${m.details || ''};${m.bonNumero || ''}\n`;
+            });
+            dlCSV(csv, `stock_${p.nom}_${dateISO(new Date())}.csv`);
+            toast('Export Stock Excel téléchargé ✓');
+        }
+
+        function exportMateriels() {
+            const p = getProject(); if (!p || p.materiels.length === 0) { toast('Aucun matériel enregistré', 'danger'); return; }
+            let csv = '\ufeffMatériel;Locataire;Prix Jour (DH);Unité;Total Jours;Total NHT (h);Total Gasoil (L);Total Coût (DH)\n';
+            p.materiels.forEach(eq => {
+                const pts = p.pointageMateriel.filter(pt => pt.equipementId === eq.id);
+                const totalNHT = pts.reduce((s, pt) => s + parseNum(pt.nht), 0);
+                const totalJ = parseFloat((totalNHT / 9).toFixed(2));
+                const totalFuel = pts.reduce((s, pt) => s + parseNum(pt.gasoil), 0);
+                const totalCout = pts.reduce((s, pt) => s + parseNum(pt.prixJ), 0);
+                csv += `${eq.type};${eq.locataire || ''};${eq.prixJour};${eq.unitePrix};${totalJ};${totalNHT};${totalFuel};${totalCout}\n`;
+            });
+            csv += '\n\ufeffDétail Pointage Journalier\nMatériel;Date;NHT (h);Gasoil (L);Description;Type Panne;Durée Panne (h);Rendement;Prix Jour (DH);Observation\n';
+            const allPts = [...p.pointageMateriel].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+            allPts.forEach(pt => {
+                const eq = p.materiels.find(e => e.id === pt.equipementId);
+                csv += `${eq ? eq.type : '?'};${pt.date};${pt.nht || 0};${pt.gasoil || 0};${pt.description || ''};${pt.panneType || ''};${pt.panNbrH || 0};${pt.rendement || ''};${pt.prixJ || 0};${pt.observation || ''}\n`;
+            });
+            dlCSV(csv, `materiels_${p.nom}_${dateISO(new Date())}.csv`);
+            toast('Export Matériels Excel téléchargé ✓');
+        }
+
+        function exportPersonnel() {
+            const p = getProject(); if (!p || p.personnel.length === 0) { toast('Aucun personnel enregistré', 'danger'); return; }
+            let csv = '\ufeffNom;Fonction;CIN;Prix Jour (DH);Total Jours;Total Salaire (DH);Total Avances (DH);Reste (DH)\n';
+            p.personnel.forEach(pe => {
+                const jours = p.pointagePersonnel.filter(pp => pp.personnelId === pe.id).reduce((s, pp) => s + pp.presence, 0);
+                const salaire = Math.round(jours * pe.prixJour);
+                const avances = p.avances.filter(a => a.personnelId === pe.id).reduce((s, a) => s + a.montant, 0);
+                const reste = Math.max(0, salaire - avances);
+                csv += `${pe.nom};${pe.fonction};${pe.cin || ''};${pe.prixJour};${jours};${salaire};${avances};${reste}\n`;
+            });
+            csv += '\n\ufeffDétail Pointage Personnel\nNom;Fonction;Date;Présence\n';
+            const allPP = [...p.pointagePersonnel].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+            allPP.forEach(pp => {
+                const pe = p.personnel.find(x => x.id === pp.personnelId);
+                csv += `${pe ? pe.nom : '?'};${pe ? pe.fonction : ''};${pp.date};${pp.presence === 1 ? 'Présent' : 'Demi-Journée'}\n`;
+            });
+            csv += '\n\ufeffAvances\nNom;Date;Montant (DH)\n';
+            p.avances.forEach(a => {
+                const pe = p.personnel.find(x => x.id === a.personnelId);
+                csv += `${pe ? pe.nom : '?'};${a.date};${a.montant}\n`;
+            });
+            dlCSV(csv, `personnel_${p.nom}_${dateISO(new Date())}.csv`);
+            toast('Export Personnel Excel téléchargé ✓');
+        }
+
+        function dlCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ============================================================
+        // SÉLECTEUR DE PROJET
+        // ============================================================
+        function updateProjectSelector() {
+            const sel = document.getElementById('sel-project');
+            sel.innerHTML = state.projects.map(p => `<option value="${p.id}"${p.id === state.currentProjectId ? ' selected' : ''}>${p.nom}</option>`).join('');
+        }
+
+        // ============================================================
+        // INITIALISATION
+        // ============================================================
+        function init() {
+            if (!load()) { state.projects = []; state.currentProjectId = null; save(); }
+            updateProjectSelector();
+
+            // Navigation sidebar
+            document.querySelectorAll('.nav-item').forEach(n => {
+                n.addEventListener('click', () => navigate(n.dataset.page));
+            });
+
+            // Sélecteur de projet
+            document.getElementById('sel-project').addEventListener('change', e => {
+                state.currentProjectId = e.target.value; save(); renderPage();
+            });
+
+            // Fermer modal avec Escape
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+            document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
+
+            navigate(state.currentPage || 'dashboard');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
