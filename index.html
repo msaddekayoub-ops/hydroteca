@@ -862,7 +862,7 @@
         const PRIX_GASOIL = 11; // DH par litre
         const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
         const CATEGORIES_DEPENSE = ['Matériaux', 'Main d\'œuvre', 'Matériels', 'Carburant', 'Transport', 'Divers'];
-        const UNITES = { Ciment: 'Sacs', Sable: 'M3', Gasoil: 'Litres', GNF2: 'M3', GNB: 'M3', MS: 'M3', 'G1+G2': 'M3', 'Acier': 'Kg', Gravier: 'M3' };
+        const UNITES = ['ML', 'M3', 'Litre', 'Kg', 'Tonne', 'Unité', 'Sac', 'M2', 'ENS', 'FF'];
 
         // ============================================================
         // GESTION D'ÉTAT
@@ -1197,7 +1197,7 @@
 
         function modalAddStockItem() {
             openModal('Nouvel Article', 'fa-box', `
-    <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" placeholder="Ex: Ciment"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${Object.entries(UNITES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" placeholder="Ex: Ciment"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${UNITES.map(u => `<option value="${u}">${u}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label>Stock Initial</label><input class="form-input" type="number" id="f-art-stock" value="0"></div><div class="form-group"><label>Prix Unitaire (DH)</label><input class="form-input" type="number" id="f-art-prix" value="0"></div></div>
     <div class="form-group"><label>Seuil d'alerte</label><input class="form-input" type="number" id="f-art-seuil" value="0"></div>
   `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveStockItem()">Ajouter</button>`);
@@ -1205,7 +1205,7 @@
         function modalEditStockItem(id) {
             const p = getProject(); const s = p.stock.find(x => x.id === id); if (!s) return;
             openModal('Modifier Article', 'fa-pen', `
-    <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" value="${s.article}"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${Object.entries(UNITES).map(([k, v]) => `<option value="${v}"${s.unite === v ? ' selected' : ''}>${v}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" value="${s.article}"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${UNITES.map(u => `<option value="${u}"${s.unite === u ? ' selected' : ''}>${u}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label>Stock Actuel</label><input class="form-input" type="number" id="f-art-stock" value="${s.stockActuel}"></div><div class="form-group"><label>Prix Unitaire (DH)</label><input class="form-input" type="number" id="f-art-prix" value="${s.prixUnitaire}"></div></div>
     <div class="form-group"><label>Seuil d'alerte</label><input class="form-input" type="number" id="f-art-seuil" value="${s.seuilAlerte}"></div>
   `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveStockItem('${id}')">Enregistrer</button>`);
