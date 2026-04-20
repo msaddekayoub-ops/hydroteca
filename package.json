@@ -16,8 +16,8 @@
       "index.html",
       "main.js",
       "icon.ico",
+      "icon.icns",
       "logo.png",
-      "iconnn.ico",
       "node_modules/electron-squirrel-startup/**/*"
     ],
     "npmRebuild": false,
