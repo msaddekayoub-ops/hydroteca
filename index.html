@@ -972,7 +972,7 @@
 
             // KPIs
             const totalDepenses = p.depenses.reduce((s, d) => s + d.montant, 0);
-            const totalMateriaux = p.mouvementsStock.filter(m => m.type === 'sortie').reduce((s, m) => { const art = p.stock.find(a => a.id === m.articleId); return s + (art ? m.quantite * art.prixUnitaire : 0); }, 0);
+            const totalMateriaux = p.mouvementsStock.filter(m => m.type === 'entree').reduce((s, m) => { const art = p.stock.find(a => a.id === m.articleId); return s + (art ? m.quantite * art.prixUnitaire : 0); }, 0);
             const totalMateriels = p.pointageMateriel.reduce((s, m) => s + parseNum(m.prixJ), 0);
             const totalPersonnel = calcTotalSalaireMois(p, new Date().getFullYear(), new Date().getMonth());
             const alertesStock = p.stock.filter(s => s.stockActuel <= s.seuilAlerte).length;
