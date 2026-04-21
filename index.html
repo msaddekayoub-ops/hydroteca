@@ -1190,22 +1190,68 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><div class="card-title"><i class="fas fa-exchange-alt"></i>Mouvements par Article</div></div>
+      <div class="card-header"><div class="card-title"><i class="fas fa-exchange-alt"></i>Historique de mouvements</div></div>
       <div style="overflow-x:auto">
         <table class="data-table">
-          <thead><tr><th>Article</th><th>Total Entrées</th><th>Total Sorties</th><th>Stock Actuel</th><th>Dernier Mouvement</th></tr></thead>
+          <thead><tr><th>Article</th><th>Total Entrées</th><th>Total Sorties</th><th>Stock Actuel</th><th>Dernier Mouvement</th><th>Détails</th></tr></thead>
           <tbody>${p.stock.length ? p.stock.map(st => {
                     const mouvArt = p.mouvementsStock.filter(m => m.articleId === st.id);
                     const totalE = mouvArt.filter(m => m.type === 'entree').reduce((t, m) => t + parseNum(m.quantite), 0);
                     const totalS = mouvArt.filter(m => m.type === 'sortie').reduce((t, m) => t + parseNum(m.quantite), 0);
                     const lastMv = [...mouvArt].sort((a, b) => parseDate(b.date) - parseDate(a.date))[0];
                     const cls = st.stockActuel <= st.seuilAlerte ? 'stock-low' : 'stock-ok';
-                    return `<tr><td><strong>${st.article}</strong></td><td style="color:var(--success)">+${fmt(totalE)} ${st.unite}</td><td style="color:var(--danger)">-${fmt(totalS)} ${st.unite}</td><td class="${cls}">${fmt(st.stockActuel)} ${st.unite}</td><td style="font-size:12px;color:var(--text-sec)">${lastMv ? dateStr(parseDate(lastMv.date)) + ' — ' + (lastMv.type === 'entree' ? 'Entrée' : 'Sortie') : '-'}</td></tr>`
-                }).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Aucun article enregistré</td></tr>`}</tbody>
+                    return `<tr><td><strong>${st.article}</strong></td><td style="color:var(--success)">+${fmt(totalE)} ${st.unite}</td><td style="color:var(--danger)">-${fmt(totalS)} ${st.unite}</td><td class="${cls}">${fmt(st.stockActuel)} ${st.unite}</td><td style="font-size:12px;color:var(--text-sec)">${lastMv ? dateStr(parseDate(lastMv.date)) + ' — ' + (lastMv.type === 'entree' ? 'Entrée' : 'Sortie') : '-'}</td><td><button class="action-btn" style="color:var(--info)" onclick="modalHistoryStock('${st.id}')" title="Voir tous les mouvements"><i class="fas fa-history"></i></button></td></tr>`
+                }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Aucun article enregistré</td></tr>`}</tbody>
         </table>
       </div>
     </div>
   </div>`;
+        }
+
+        function modalHistoryStock(id) {
+            const p = getProject();
+            const st = p.stock.find(x => x.id === id);
+            if (!st) return;
+            const mouvs = [...p.mouvementsStock].filter(m => m.articleId === id).sort((a, b) => parseDate(b.date) - parseDate(a.date));
+            const totalE = mouvs.filter(m => m.type === 'entree').reduce((t, m) => t + parseNum(m.quantite), 0);
+            const totalS = mouvs.filter(m => m.type === 'sortie').reduce((t, m) => t + parseNum(m.quantite), 0);
+            const prixTotal = totalE * st.prixUnitaire;
+            const avance = parseNum(st.avance);
+            const reste = prixTotal - avance;
+            let html = `
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Entrées</div>
+                <div style="font-size:18px;font-weight:800;color:var(--success)">${fmt(totalE)} ${st.unite}</div>
+              </div>
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Sorties</div>
+                <div style="font-size:18px;font-weight:800;color:var(--danger)">${fmt(totalS)} ${st.unite}</div>
+              </div>
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Prix Total</div>
+                <div style="font-size:18px;font-weight:800;color:var(--accent)">${fmt(prixTotal)} DH</div>
+              </div>
+              <div style="background:var(--bg-input);border-radius:8px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Reste à Payer</div>
+                <div style="font-size:18px;font-weight:800;color:${reste > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(reste)} DH</div>
+              </div>
+            </div>`;
+            if (mouvs.length === 0) {
+                html += `<div style="text-align:center;color:var(--text-muted);padding:24px"><i class="fas fa-inbox" style="font-size:32px;margin-bottom:8px;display:block"></i>Aucun mouvement enregistré</div>`;
+            } else {
+                html += `<div style="overflow-x:auto"><table class="data-table">
+                <thead><tr><th>Date</th><th>Type</th><th>Quantité</th><th>Détails</th><th>N° Bon</th></tr></thead>
+                <tbody>${mouvs.map(m => `<tr>
+                    <td>${dateStr(parseDate(m.date))}</td>
+                    <td><span class="badge ${m.type === 'entree' ? 'badge-success' : 'badge-danger'}">${m.type === 'entree' ? 'Entrée' : 'Sortie'}</span></td>
+                    <td style="font-weight:600">${m.type === 'entree' ? '+' : '-'}${fmt(m.quantite)} ${st.unite}</td>
+                    <td style="color:var(--text-sec)">${m.details || '-'}</td>
+                    <td>${m.bonNumero || '-'}</td>
+                </tr>`).join('')}</tbody>
+                </table></div>`;
+            }
+            openModal(`Historique : ${st.article}`, 'fa-history', html, `<button class="topbar-btn" onclick="closeModal()">Fermer</button>`);
         }
 
         function modalAddStockItem() {
