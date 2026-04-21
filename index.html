@@ -972,7 +972,8 @@
 
             // KPIs
             const totalDepenses = p.depenses.reduce((s, d) => s + d.montant, 0);
-            const totalMateriaux = p.mouvementsStock.filter(m => m.type === 'entree').reduce((s, m) => { const art = p.stock.find(a => a.id === m.articleId); return s + (art ? m.quantite * art.prixUnitaire : 0); }, 0);
+            const totalPaye = p.stock.reduce((s, st) => s + parseNum(st.avance), 0);
+            const totalResteMateriaux = p.stock.reduce((s, st) => { const qte = p.mouvementsStock.filter(m => m.articleId === st.id && m.type === 'entree').reduce((t, m) => t + parseNum(m.quantite), 0); return s + Math.max(0, qte * st.prixUnitaire - parseNum(st.avance)); }, 0);
             const totalMateriels = p.pointageMateriel.reduce((s, m) => s + parseNum(m.prixJ), 0);
             const totalPersonnel = calcTotalSalaireMois(p, new Date().getFullYear(), new Date().getMonth());
             const alertesStock = p.stock.filter(s => s.stockActuel <= s.seuilAlerte).length;
@@ -980,7 +981,7 @@
             c.innerHTML = `<div class="fade-in">
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-icon" style="background:rgba(245,158,11,.12);color:#fbbf24"><i class="fas fa-coins"></i></div><div class="kpi-info"><h3>Dépenses Totales</h3><div class="value">${fmt(totalDepenses)}</div><div class="change" style="color:var(--text-sec)">DH</div></div></div>
-      <div class="kpi"><div class="kpi-icon" style="background:rgba(6,182,212,.12);color:#22d3ee"><i class="fas fa-boxes-stacked"></i></div><div class="kpi-info"><h3>Coût Matériaux</h3><div class="value">${fmt(totalMateriaux)}</div><div class="change" style="color:var(--text-sec)">DH</div></div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(6,182,212,.12);color:#22d3ee"><i class="fas fa-boxes-stacked"></i></div><div class="kpi-info"><h3>Coût Matériaux</h3><div style="margin-top:4px"><div style="font-size:11px;color:var(--text-sec)">Total Payé</div><div style="font-weight:800;color:var(--success)">${fmt(totalPaye)} DH</div></div><div style="margin-top:4px"><div style="font-size:11px;color:var(--text-sec)">Reste à Payer</div><div style="font-weight:800;color:var(--danger)">${fmt(totalResteMateriaux)} DH</div></div></div></div>
       <div class="kpi"><div class="kpi-icon" style="background:rgba(16,185,129,.12);color:#34d399"><i class="fas fa-tractor"></i></div><div class="kpi-info"><h3>Coût Matériels</h3><div class="value">${fmt(totalMateriels)}</div><div class="change" style="color:var(--text-sec)">DH cumulés</div></div></div>
       <div class="kpi"><div class="kpi-icon" style="background:rgba(239,68,68,.12);color:#f87171"><i class="fas fa-users"></i></div><div class="kpi-info"><h3>Coût Personnel</h3><div class="value">${fmt(totalPersonnel)}</div><div class="change" style="color:var(--text-sec)">DH ce mois</div></div></div>
       <div class="kpi"><div class="kpi-icon" style="background:rgba(168,85,247,.12);color:#c084fc"><i class="fas fa-boxes-stacked"></i></div><div class="kpi-info"><h3>Alertes Stock</h3><div class="value">${alertesStock}</div><div class="change" style="color:${alertesStock > 0 ? 'var(--danger)' : 'var(--success)'}">${alertesStock > 0 ? 'Articles sous seuil' : 'Stock OK'}</div></div></div>
@@ -1163,17 +1164,25 @@
       <div class="card-header"><div class="card-title"><i class="fas fa-warehouse"></i>État du Stock</div></div>
       <div style="overflow-x:auto">
         <table class="data-table">
-          <thead><tr><th>Article</th><th>Unité</th><th>Stock Actuel</th><th>Seuil Alerte</th><th>Prix Unitaire</th><th>Valeur Stock</th><th>Dernier Mouvement</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Article</th><th>Unité</th><th>Qté Entrée</th><th>Stock Actuel</th><th>Seuil Alerte</th><th>Prix Unitaire</th><th>Prix Total</th><th>Fournisseur</th><th>Avance (DH)</th><th>Reste à Payer (DH)</th><th>Dernier Mouvement</th><th>Actions</th></tr></thead>
           <tbody>${p.stock.map(s => {
                 const cls = s.stockActuel <= s.seuilAlerte ? 'stock-low' : s.stockActuel <= s.seuilAlerte * 1.5 ? 'stock-mid' : 'stock-ok';
                 const lastM = [...p.mouvementsStock].filter(m => m.articleId === s.id).sort((a, b) => parseDate(b.date) - parseDate(a.date))[0];
+                const qteEntree = p.mouvementsStock.filter(m => m.articleId === s.id && m.type === 'entree').reduce((t, m) => t + parseNum(m.quantite), 0);
+                const prixTotal = qteEntree * s.prixUnitaire;
+                const avanceSt = parseNum(s.avance);
+                const resteSt = prixTotal - avanceSt;
                 return `<tr>
               <td><strong>${s.article}</strong></td>
               <td>${s.unite}</td>
+              <td style="font-weight:600;color:var(--info)">${fmt(qteEntree)}</td>
               <td class="${cls}">${fmt(s.stockActuel)}</td>
               <td>${fmt(s.seuilAlerte)}</td>
               <td>${fmt(s.prixUnitaire)} DH</td>
-              <td>${fmt(s.stockActuel * s.prixUnitaire)} DH</td>
+              <td style="font-weight:600">${fmt(prixTotal)} DH</td>
+              <td>${s.fournisseur || '-'}</td>
+              <td>${fmt(avanceSt)} DH</td>
+              <td style="font-weight:600;color:${resteSt > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(resteSt)} DH</td>
               <td style="font-size:12px;color:var(--text-sec)">${lastM ? dateStr(parseDate(lastM.date)) + ' (' + lastM.type + ')' : '-'}</td>
               <td><button class="action-btn" onclick="modalEditStockItem('${s.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deleteStockItem('${s.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td>
             </tr>`}).join('')}</tbody>
@@ -1181,14 +1190,18 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><div class="card-title"><i class="fas fa-exchange-alt"></i>Derniers Mouvements</div></div>
+      <div class="card-header"><div class="card-title"><i class="fas fa-exchange-alt"></i>Mouvements par Article</div></div>
       <div style="overflow-x:auto">
         <table class="data-table">
-          <thead><tr><th>Date</th><th>Article</th><th>Type</th><th>Quantité</th><th>Détails</th><th>N° Bon</th></tr></thead>
-          <tbody>${recentMouvements.length ? recentMouvements.map(m => {
-                    const art = p.stock.find(s => s.id === m.articleId);
-                    return `<tr><td>${dateStr(parseDate(m.date))}</td><td>${art ? art.article : '?'}</td><td><span class="badge ${m.type === 'entree' ? 'badge-success' : 'badge-danger'}">${m.type === 'entree' ? 'Entrée' : 'Sortie'}</span></td><td>${m.type === 'entree' ? '+' : '-'}${fmt(m.quantite)}</td><td style="color:var(--text-sec)">${m.details || '-'}</td><td>${m.bonNumero || '-'}</td></tr>`
-                }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Aucun mouvement enregistré</td></tr>`}</tbody>
+          <thead><tr><th>Article</th><th>Total Entrées</th><th>Total Sorties</th><th>Stock Actuel</th><th>Dernier Mouvement</th></tr></thead>
+          <tbody>${p.stock.length ? p.stock.map(st => {
+                    const mouvArt = p.mouvementsStock.filter(m => m.articleId === st.id);
+                    const totalE = mouvArt.filter(m => m.type === 'entree').reduce((t, m) => t + parseNum(m.quantite), 0);
+                    const totalS = mouvArt.filter(m => m.type === 'sortie').reduce((t, m) => t + parseNum(m.quantite), 0);
+                    const lastMv = [...mouvArt].sort((a, b) => parseDate(b.date) - parseDate(a.date))[0];
+                    const cls = st.stockActuel <= st.seuilAlerte ? 'stock-low' : 'stock-ok';
+                    return `<tr><td><strong>${st.article}</strong></td><td style="color:var(--success)">+${fmt(totalE)} ${st.unite}</td><td style="color:var(--danger)">-${fmt(totalS)} ${st.unite}</td><td class="${cls}">${fmt(st.stockActuel)} ${st.unite}</td><td style="font-size:12px;color:var(--text-sec)">${lastMv ? dateStr(parseDate(lastMv.date)) + ' — ' + (lastMv.type === 'entree' ? 'Entrée' : 'Sortie') : '-'}</td></tr>`
+                }).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Aucun article enregistré</td></tr>`}</tbody>
         </table>
       </div>
     </div>
@@ -1199,6 +1212,7 @@
             openModal('Nouvel Article', 'fa-box', `
     <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" placeholder="Ex: Ciment"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${UNITES.map(u => `<option value="${u}">${u}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label>Stock Initial</label><input class="form-input" type="number" id="f-art-stock" value="0"></div><div class="form-group"><label>Prix Unitaire (DH)</label><input class="form-input" type="number" id="f-art-prix" value="0"></div></div>
+    <div class="form-row"><div class="form-group"><label>Fournisseur</label><input class="form-input" id="f-art-fourn" placeholder="Nom du fournisseur"></div><div class="form-group"><label>Avance (DH)</label><input class="form-input" type="number" id="f-art-avance" value="0"></div></div>
     <div class="form-group"><label>Seuil d'alerte</label><input class="form-input" type="number" id="f-art-seuil" value="0"></div>
   `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveStockItem()">Ajouter</button>`);
         }
@@ -1207,12 +1221,13 @@
             openModal('Modifier Article', 'fa-pen', `
     <div class="form-row"><div class="form-group"><label>Article</label><input class="form-input" id="f-art-nom" value="${s.article}"></div><div class="form-group"><label>Unité</label><select class="form-input" id="f-art-unite">${UNITES.map(u => `<option value="${u}"${s.unite === u ? ' selected' : ''}>${u}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label>Stock Actuel</label><input class="form-input" type="number" id="f-art-stock" value="${s.stockActuel}"></div><div class="form-group"><label>Prix Unitaire (DH)</label><input class="form-input" type="number" id="f-art-prix" value="${s.prixUnitaire}"></div></div>
+    <div class="form-row"><div class="form-group"><label>Fournisseur</label><input class="form-input" id="f-art-fourn" value="${s.fournisseur || ''}"></div><div class="form-group"><label>Avance (DH)</label><input class="form-input" type="number" id="f-art-avance" value="${s.avance || 0}"></div></div>
     <div class="form-group"><label>Seuil d'alerte</label><input class="form-input" type="number" id="f-art-seuil" value="${s.seuilAlerte}"></div>
   `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveStockItem('${id}')">Enregistrer</button>`);
         }
         function saveStockItem(editId) {
             const p = getProject();
-            const data = { article: document.getElementById('f-art-nom').value.trim(), unite: document.getElementById('f-art-unite').value, stockActuel: parseNum(document.getElementById('f-art-stock').value), prixUnitaire: parseNum(document.getElementById('f-art-prix').value), seuilAlerte: parseNum(document.getElementById('f-art-seuil').value) };
+            const data = { article: document.getElementById('f-art-nom').value.trim(), unite: document.getElementById('f-art-unite').value, stockActuel: parseNum(document.getElementById('f-art-stock').value), prixUnitaire: parseNum(document.getElementById('f-art-prix').value), seuilAlerte: parseNum(document.getElementById('f-art-seuil').value), fournisseur: document.getElementById('f-art-fourn').value.trim(), avance: parseNum(document.getElementById('f-art-avance').value) };
             if (!data.article) { toast('Veuillez saisir le nom', 'danger'); return; }
             if (editId) { const s = p.stock.find(x => x.id === editId); if (s) Object.assign(s, data); toast('Article modifié'); }
             else { p.stock.push({ id: uid(), ...data }); toast('Article ajouté'); }
@@ -1256,15 +1271,17 @@
       <div class="card-header"><div class="card-title"><i class="fas fa-tractor"></i>Liste des Matériels</div></div>
       <div style="overflow-x:auto">
         <table class="data-table">
-          <thead><tr><th>Type</th><th>Locataire</th><th>Prix Jour (DH)</th><th>Unité</th><th>Jours Travaillés (Total)</th><th>NHT ce mois</th><th>Gasoil ce mois (L)</th><th>Coût ce mois (DH)</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Type</th><th>Locataire</th><th>Prix Jour (DH)</th><th>Unité</th><th>Jours Travaillés (Total)</th><th>NHT ce mois</th><th>Gasoil ce mois (L)</th><th>Coût ce mois (DH)</th><th>Avance (DH)</th><th>Reste à Payer (DH)</th><th>Actions</th></tr></thead>
           <tbody>${p.materiels.map(eq => {
                 const allNHT = p.pointageMateriel.filter(pt => pt.equipementId === eq.id).reduce((s, pt) => s + parseNum(pt.nht), 0);
                 const allDays = parseFloat((allNHT / 9).toFixed(2));
                 const pts = p.pointageMateriel.filter(pt => pt.equipementId === eq.id && parseDate(pt.date) && parseDate(pt.date).getMonth() === m && parseDate(pt.date).getFullYear() === y);
                 const nht = pts.reduce((s, pt) => s + parseNum(pt.nht), 0);
                 const fuel = pts.reduce((s, pt) => s + parseNum(pt.gasoil), 0);
-                const cout = pts.reduce((s, pt) => s + parseNum(pt.prixJ), 0);
-                return `<tr><td><strong>${eq.type}</strong></td><td>${eq.locataire || '-'}</td><td>${fmt(eq.prixJour)}</td><td>${eq.unitePrix}</td><td style="font-weight:700;color:var(--info)">${allDays} j</td><td>${fmt(nht)}</td><td>${fmt(fuel)}</td><td style="font-weight:600">${fmt(cout)}</td>
+                const cout = Math.round((nht / 9) * eq.prixJour);
+                const avanceEq = parseNum(eq.avance);
+                const resteEq = cout - avanceEq;
+                return `<tr><td><strong>${eq.type}</strong></td><td>${eq.locataire || '-'}</td><td>${fmt(eq.prixJour)}</td><td>${eq.unitePrix}</td><td style="font-weight:700;color:var(--info)">${allDays} j</td><td>${fmt(nht)}</td><td>${fmt(fuel)}</td><td style="font-weight:600">${fmt(cout)}</td><td>${fmt(avanceEq)}</td><td style="font-weight:600;color:${resteEq > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(resteEq)}</td>
             <td><button class="action-btn" style="color:var(--info)" onclick="modalHistoryMateriel('${eq.id}')" title="Historique"><i class="fas fa-history"></i></button> <button class="action-btn" onclick="modalEditMateriel('${eq.id}')" title="Modifier"><i class="fas fa-pen"></i></button> <button class="action-btn danger" onclick="deleteMateriel('${eq.id}')" title="Supprimer"><i class="fas fa-trash"></i></button></td></tr>`
             }).join('')}</tbody>
         </table>
@@ -1349,11 +1366,12 @@
     <div class="form-group"><label>Type de matériel</label><input class="form-input" id="f-eq-type" value="${eq.type}"></div>
     <div class="form-row"><div class="form-group"><label>Locataire</label><input class="form-input" id="f-eq-loc" value="${eq.locataire || ''}"></div><div class="form-group"><label>Unité de facturation</label><select class="form-input" id="f-eq-unite">${['J', 'V', 'M'].map(u => `<option value="${u}"${eq.unitePrix === u ? ' selected' : ''}>${u === 'J' ? 'Par Jour' : u === 'V' ? 'Par Voyage' : 'Par Mois'}</option>`).join('')}</select></div></div>
     <div class="form-group"><label>Prix unitaire (DH)</label><input class="form-input" type="number" id="f-eq-prix" value="${eq.prixJour}"></div>
+    <div class="form-group"><label>Avance (DH)</label><input class="form-input" type="number" id="f-eq-avance" value="${eq.avance || 0}"></div>
   `, `<button class="topbar-btn" onclick="closeModal()">Annuler</button><button class="topbar-btn primary" onclick="saveMateriel('${id}')">Enregistrer</button>`);
         }
         function saveMateriel(editId) {
             const p = getProject();
-            const data = { type: document.getElementById('f-eq-type').value.trim(), locataire: document.getElementById('f-eq-loc').value.trim(), unitePrix: document.getElementById('f-eq-unite').value, prixJour: parseNum(document.getElementById('f-eq-prix').value) };
+            const data = { type: document.getElementById('f-eq-type').value.trim(), locataire: document.getElementById('f-eq-loc').value.trim(), unitePrix: document.getElementById('f-eq-unite').value, prixJour: parseNum(document.getElementById('f-eq-prix').value), avance: parseNum(document.getElementById('f-eq-avance').value) };
             if (!data.type) { toast('Veuillez saisir le type', 'danger'); return; }
             if (editId) { const eq = p.materiels.find(e => e.id === editId); if (eq) Object.assign(eq, data); toast('Matériel modifié'); }
             else { p.materiels.push({ id: uid(), ...data }); toast('Matériel ajouté'); }
